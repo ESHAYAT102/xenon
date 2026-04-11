@@ -320,7 +320,11 @@ export default function MarkdownPreview({
     }
 
     if (typeof node === "object" && "type" in node) {
-      if (node.type === "img" && typeof node.props?.src === "string") {
+      if (
+        node.type === "img" &&
+        "props" in node &&
+        typeof node.props?.src === "string"
+      ) {
         return isSmallMedia({
           height: node.props?.height,
           src: resolveMarkdownUrl(node.props.src, repositoryContext),
@@ -329,8 +333,10 @@ export default function MarkdownPreview({
       }
       if (
         node.type === "a" &&
+        "props" in node &&
         typeof node.props?.children === "object" &&
         node.props.children?.type === "img" &&
+        "props" in node.props.children &&
         typeof node.props.children?.props?.src === "string"
       ) {
         return isSmallMedia({
