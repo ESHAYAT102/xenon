@@ -320,39 +320,46 @@ export default function MarkdownPreview({
     }
 
     if (typeof node === "object" && "type" in node) {
-      if (
-        node.type === "img" &&
-        "props" in node &&
-        typeof node.props?.src === "string"
-      ) {
+      const nodeAny = node as {
+        type?: unknown
+        props?: {
+          src?: unknown
+          height?: unknown
+          width?: unknown
+          children?: unknown
+        }
+      }
+      if (nodeAny.type === "img" && typeof nodeAny.props?.src === "string") {
         return isSmallMedia({
-          height: node.props?.height,
-          src: resolveMarkdownUrl(node.props.src, repositoryContext),
-          width: node.props?.width,
+          height: nodeAny.props?.height as string | number | undefined,
+          src: resolveMarkdownUrl(nodeAny.props.src, repositoryContext),
+          width: nodeAny.props?.width as string | number | undefined,
         })
       }
       if (
-        node.type === "a" &&
-        "props" in node &&
-        typeof node.props?.children === "object" &&
-        node.props.children?.type === "img" &&
-        "props" in node.props.children &&
-        typeof node.props.children?.props?.src === "string"
+        nodeAny.type === "a" &&
+        typeof nodeAny.props?.children === "object" &&
+        (nodeAny.props?.children as { type?: unknown }).type === "img" &&
+        typeof (nodeAny.props?.children as { props?: { src?: unknown } })
+          .props?.src === "string"
       ) {
+        const childAny = nodeAny.props?.children as {
+          props?: { height?: unknown; src?: string; width?: unknown }
+        }
         return isSmallMedia({
-          height: node.props.children.props?.height,
+          height: childAny.props?.height as string | number | undefined,
           src: resolveMarkdownUrl(
-            node.props.children.props.src,
+            childAny.props?.src ?? "",
             repositoryContext
           ),
-          width: node.props.children.props?.width,
+          width: childAny.props?.width as string | number | undefined,
         })
       }
       return (
-        node.type === "img" ||
-        (node.type === "a" &&
-          typeof node.props?.children === "object" &&
-          node.props.children?.type === "img")
+        nodeAny.type === "img" ||
+        (nodeAny.type === "a" &&
+          typeof nodeAny.props?.children === "object" &&
+          (nodeAny.props?.children as { type?: unknown }).type === "img")
       )
     }
 
