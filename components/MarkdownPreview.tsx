@@ -1,0 +1,563 @@
+"use client"
+
+import { useState } from "react"
+import { Check, Copy } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism"
+import rehypeRaw from "rehype-raw"
+import remarkGfm from "remark-gfm"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
+import Image from "@/components/Image"
+import A from "@/components/A"
+
+type MarkdownPreviewProps = {
+  markdown: string
+  repositoryContext?: {
+    branch: string
+    filePath: string
+    owner: string
+    repo: string
+  }
+}
+
+function isVideoUrl(value: string) {
+  return /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(value)
+}
+
+function isImageUrl(value: string) {
+  return /\.(png|jpe?g|gif|webp|svg|avif)(\?.*)?$/i.test(value)
+}
+
+function isBadgeImage(value: string) {
+  return (
+    value.includes("img.shields.io") ||
+    value.includes("/badge/") ||
+    value.includes("badgen.net")
+  )
+}
+
+function isGitHubAttachmentUrl(value: string) {
+  return (
+    value.includes("github.com/user-attachments/assets/") ||
+    value.includes("user-images.githubusercontent.com/") ||
+    value.includes("private-user-images.githubusercontent.com/")
+  )
+}
+
+function isAbsoluteUrl(value: string) {
+  return /^[a-z][a-z\d+\-.]*:/i.test(value)
+}
+
+function normalizePath(path: string) {
+  const parts = path.split("/")
+  const normalized: string[] = []
+
+  for (const part of parts) {
+    if (!part || part === ".") continue
+    if (part === "..") {
+      normalized.pop()
+      continue
+    }
+
+    normalized.push(part)
+  }
+
+  return normalized.join("/")
+}
+
+function resolveMarkdownUrl(
+  value: string,
+  repositoryContext?: MarkdownPreviewProps["repositoryContext"]
+) {
+  if (!value || !repositoryContext) return value
+  if (value.startsWith("#") || value.startsWith("mailto:")) return value
+  if (isAbsoluteUrl(value)) return value
+
+  const baseDirectory = repositoryContext.filePath.includes("/")
+    ? repositoryContext.filePath.split("/").slice(0, -1).join("/")
+    : ""
+  const relativePath = value.startsWith("/")
+    ? value.slice(1)
+    : [baseDirectory, value].filter(Boolean).join("/")
+  const normalizedPath = normalizePath(relativePath)
+
+  return `https://raw.githubusercontent.com/${repositoryContext.owner}/${repositoryContext.repo}/${repositoryContext.branch}/${normalizedPath}`
+}
+
+function toNumber(value?: string | number) {
+  if (typeof value === "number") return value
+  if (typeof value !== "string") return undefined
+  const parsed = Number.parseFloat(value)
+  return Number.isNaN(parsed) ? undefined : parsed
+}
+
+function isSmallMedia({
+  height,
+  src,
+  width,
+}: {
+  height?: string | number
+  src: string
+  width?: string | number
+}) {
+  const iconLikeSources = [
+    "devicon",
+    "skillicons.dev",
+    "simpleicons",
+    "simpleicons.org",
+    "vectorlogo.zone",
+    "icons8.com",
+    "iconify.design",
+  ]
+  if (isBadgeImage(src)) return true
+  if (iconLikeSources.some((source) => src.includes(source))) return true
+  const numericWidth = toNumber(width)
+  const numericHeight = toNumber(height)
+  if (numericWidth && numericWidth <= 48) return true
+  if (numericHeight && numericHeight <= 48) return true
+  return false
+}
+
+function SmartMedia({
+  alt,
+  className,
+  height,
+  src,
+  style,
+  variant = "block",
+  width,
+}: {
+  alt: string
+  className?: string
+  height?: number | string
+  src: string
+  style?: React.CSSProperties
+  variant?: "inline" | "block"
+  width?: number | string
+}) {
+  const isBadge = isBadgeImage(src)
+  const explicitVideo = isVideoUrl(src)
+  const explicitImage = isImageUrl(src) || isBadge
+  const attachment = isGitHubAttachmentUrl(src)
+  const [mode, setMode] = useState<"image" | "video" | "fallback">(
+    explicitVideo ? "video" : "image"
+  )
+  const hasExplicitSize = Boolean(width || height)
+
+  if (mode === "fallback") {
+    return (
+      <a
+        href={src}
+        className="text-foreground underline underline-offset-4"
+        target="_blank"
+        rel="noreferrer"
+      >
+        {src}
+      </a>
+    )
+  }
+
+  if (mode === "video") {
+    const baseClassName =
+      variant === "inline"
+        ? hasExplicitSize
+          ? "inline-block rounded-md bg-transparent align-middle object-contain"
+          : "inline-block max-h-8 w-auto rounded-md bg-transparent align-middle object-contain"
+        : hasExplicitSize
+          ? "my-4 rounded-xl bg-transparent object-contain"
+          : "my-4 max-h-[32rem] w-full rounded-xl bg-transparent object-contain"
+    return (
+      <video
+        controls
+        className={[baseClassName, className].filter(Boolean).join(" ")}
+        onError={() =>
+          setMode(explicitImage || attachment ? "image" : "fallback")
+        }
+        height={height}
+        src={src}
+        style={style}
+        width={width}
+      >
+        <track kind="captions" />
+      </video>
+    )
+  }
+
+  const baseClassName =
+    variant === "inline"
+      ? hasExplicitSize
+        ? "inline-block align-middle object-contain"
+        : "inline-block max-h-8 w-auto align-middle object-contain"
+      : isBadge
+        ? "my-1 inline-block h-5 w-auto align-middle object-contain"
+        : hasExplicitSize
+          ? "my-4 block max-w-full rounded-xl object-contain"
+          : "my-4 block max-h-[32rem] max-w-full rounded-xl object-contain"
+
+  return (
+    <Image
+      alt={alt}
+      className={[baseClassName, className].filter(Boolean).join(" ")}
+      onError={() =>
+        setMode(explicitVideo || attachment ? "video" : "fallback")
+      }
+      height={height}
+      src={src}
+      style={style}
+      width={width}
+    />
+  )
+}
+
+function CodeBlock({ code, language }: { code: string; language?: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      toast.success("Code copied")
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      toast.error("Could not copy code")
+    }
+  }
+
+  return (
+    <div className="relative">
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-xs"
+        className="absolute top-3 right-3 z-10 rounded-lg border-border/70 bg-background/80 backdrop-blur-sm"
+        onClick={handleCopy}
+      >
+        {copied ? <Check /> : <Copy />}
+      </Button>
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <SyntaxHighlighter
+          language={language}
+          style={oneDark}
+          customStyle={{
+            background: "transparent",
+            margin: 0,
+            padding: "14px 56px 14px 16px",
+            fontSize: "12px",
+            lineHeight: "1.6",
+          }}
+          codeTagProps={{
+            style: {
+              fontFamily: "var(--font-mono)",
+            },
+          }}
+          wrapLongLines={false}
+        >
+          {code || " "}
+        </SyntaxHighlighter>
+      </div>
+    </div>
+  )
+}
+
+export default function MarkdownPreview({
+  markdown,
+  repositoryContext,
+}: MarkdownPreviewProps) {
+  const renderImageRow = (node: React.ReactNode) => {
+    if (!node) return false
+    const images: Array<{
+      height?: string | number
+      src: string
+      width?: string | number
+    }> = []
+    if (Array.isArray(node)) {
+      const onlyImages = node.every((child) => {
+        if (!child) return true
+        if (typeof child === "string") {
+          return child.trim().length === 0
+        }
+        if (typeof child === "object" && "type" in child) {
+          if (child.type === "img") {
+            if (typeof child.props?.src === "string") {
+              images.push({
+                height: child.props?.height,
+                src: resolveMarkdownUrl(child.props.src, repositoryContext),
+                width: child.props?.width,
+              })
+            }
+            return true
+          }
+          if (
+            child.type === "a" &&
+            typeof child.props?.children === "object" &&
+            child.props.children?.type === "img"
+          ) {
+            if (typeof child.props.children?.props?.src === "string") {
+              images.push({
+                height: child.props.children.props?.height,
+                src: resolveMarkdownUrl(
+                  child.props.children.props.src,
+                  repositoryContext
+                ),
+                width: child.props.children.props?.width,
+              })
+            }
+            return true
+          }
+          return false
+        }
+        return false
+      })
+      if (!onlyImages) return false
+      if (images.length === 0) return false
+      return images.every((image) => isSmallMedia(image))
+    }
+
+    if (typeof node === "string") {
+      return node.trim().length === 0
+    }
+
+    if (typeof node === "object" && "type" in node) {
+      if (node.type === "img" && typeof node.props?.src === "string") {
+        return isSmallMedia({
+          height: node.props?.height,
+          src: resolveMarkdownUrl(node.props.src, repositoryContext),
+          width: node.props?.width,
+        })
+      }
+      if (
+        node.type === "a" &&
+        typeof node.props?.children === "object" &&
+        node.props.children?.type === "img" &&
+        typeof node.props.children?.props?.src === "string"
+      ) {
+        return isSmallMedia({
+          height: node.props.children.props?.height,
+          src: resolveMarkdownUrl(
+            node.props.children.props.src,
+            repositoryContext
+          ),
+          width: node.props.children.props?.width,
+        })
+      }
+      return (
+        node.type === "img" ||
+        (node.type === "a" &&
+          typeof node.props?.children === "object" &&
+          node.props.children?.type === "img")
+      )
+    }
+
+    return false
+  }
+
+  return (
+    <div className="space-y-4 text-sm leading-7 text-muted-foreground">
+      <ReactMarkdown
+        rehypePlugins={[rehypeRaw]}
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ href, children, ...props }) => {
+            const resolvedHref = href
+              ? resolveMarkdownUrl(href, repositoryContext)
+              : href
+
+            if (
+              resolvedHref &&
+              (isVideoUrl(resolvedHref) ||
+                isImageUrl(resolvedHref) ||
+                isGitHubAttachmentUrl(resolvedHref))
+            ) {
+              return (
+                <span className="block">
+                  <SmartMedia
+                    alt={
+                      typeof children === "string" ? children : "Markdown media"
+                    }
+                    src={resolvedHref}
+                    variant="block"
+                  />
+                </span>
+              )
+            }
+
+            return (
+              <A
+                {...props}
+                href={resolvedHref ?? "#"}
+                className="text-foreground underline underline-offset-4"
+                target={resolvedHref?.startsWith("/") ? undefined : "_blank"}
+                rel={resolvedHref?.startsWith("/") ? undefined : "noreferrer"}
+              >
+                {children}
+              </A>
+            )
+          },
+          code: ({ className, children, ...props }) => {
+            const isBlock = Boolean(className)
+            const content = String(children).replace(/\n$/, "")
+            const language = className?.replace("language-", "") || undefined
+
+            if (isBlock) {
+              return <CodeBlock code={content} language={language} />
+            }
+
+            return (
+              <code
+                {...props}
+                className="rounded bg-muted px-1 py-0.5 text-xs text-foreground"
+              >
+                {children}
+              </code>
+            )
+          },
+          h1: (props) => (
+            <h1 {...props} className="text-2xl font-semibold text-foreground" />
+          ),
+          h2: (props) => (
+            <h2 {...props} className="text-xl font-semibold text-foreground" />
+          ),
+          h3: (props) => (
+            <h3 {...props} className="text-lg font-semibold text-foreground" />
+          ),
+          img: ({ alt, src, width, height, className, style }) => {
+            if (typeof src !== "string") return null
+            const resolvedSrc = resolveMarkdownUrl(src, repositoryContext)
+            const variant = isSmallMedia({
+              height,
+              src: resolvedSrc,
+              width,
+            })
+              ? "inline"
+              : "block"
+            return (
+              <SmartMedia
+                alt={alt ?? "Markdown image"}
+                className={className}
+                height={height}
+                src={resolvedSrc}
+                style={style}
+                variant={variant}
+                width={width}
+              />
+            )
+          },
+          li: (props) => <li {...props} className="ml-5 list-disc" />,
+          p: ({ children, ...props }) => {
+            if (renderImageRow(children)) {
+              return (
+                <span
+                  {...props}
+                  className="inline-flex flex-wrap items-center gap-3 text-sm leading-7 text-muted-foreground"
+                >
+                  {Array.isArray(children)
+                    ? children.map((child, index) => {
+                        if (
+                          child &&
+                          typeof child === "object" &&
+                          "type" in child
+                        ) {
+                          if (child.type === "img") {
+                            return (
+                              <SmartMedia
+                                key={`img-${index}`}
+                                alt={child.props?.alt ?? "Markdown image"}
+                                className={child.props?.className}
+                                height={child.props?.height}
+                                src={resolveMarkdownUrl(
+                                  child.props?.src ?? "",
+                                  repositoryContext
+                                )}
+                                style={child.props?.style}
+                                variant="inline"
+                                width={child.props?.width}
+                              />
+                            )
+                          }
+                          if (
+                            child.type === "a" &&
+                            child.props?.children?.type === "img"
+                          ) {
+                            const imageNode = child.props.children
+                            return (
+                              <a
+                                key={`img-${index}`}
+                                href={child.props?.href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex"
+                              >
+                                <SmartMedia
+                                  alt={imageNode.props?.alt ?? "Markdown image"}
+                                  className={imageNode.props?.className}
+                                  height={imageNode.props?.height}
+                                  src={resolveMarkdownUrl(
+                                    imageNode.props?.src ?? "",
+                                    repositoryContext
+                                  )}
+                                  style={imageNode.props?.style}
+                                  variant="inline"
+                                  width={imageNode.props?.width}
+                                />
+                              </a>
+                            )
+                          }
+                        }
+
+                        if (typeof child === "string") {
+                          return child.trim().length === 0 ? null : child
+                        }
+
+                        return child
+                      })
+                    : children}
+                </span>
+              )
+            }
+
+            return (
+              <p {...props} className="text-sm leading-7 text-muted-foreground">
+                {children}
+              </p>
+            )
+          },
+          div: ({ children, ...props }) => {
+            if (renderImageRow(children)) {
+              return (
+                <div
+                  {...props}
+                  className="flex flex-wrap items-center gap-3 text-sm leading-7 text-muted-foreground"
+                >
+                  {children}
+                </div>
+              )
+            }
+            return (
+              <div {...props} className="text-sm leading-7 text-muted-foreground">
+                {children}
+              </div>
+            )
+          },
+          pre: (props) => <pre {...props} className="my-4" />,
+          table: (props) => (
+            <div className="overflow-x-auto">
+              <table {...props} className="w-full border-collapse text-left" />
+            </div>
+          ),
+          td: (props) => <td {...props} className="border border-border px-3 py-2" />,
+          th: (props) => (
+            <th
+              {...props}
+              className="border border-border px-3 py-2 font-medium text-foreground"
+            />
+          ),
+          ul: (props) => <ul {...props} className="space-y-1" />,
+        }}
+      >
+        {markdown}
+      </ReactMarkdown>
+    </div>
+  )
+}
