@@ -3,7 +3,12 @@ import type { Metadata } from "next"
 import BrowserContextMenu from "@/components/BrowserContextMenu"
 import Navbar from "@/components/Navbar"
 import NewRepositoryForm from "@/components/NewRepositoryForm"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { getGitHubNotifications, getGitHubViewerSettings } from "@/lib/github"
 import { getSessionUser } from "@/lib/session"
 
@@ -29,7 +34,7 @@ export default async function NewRepositoryPage() {
                 <CardTitle>Repository creation unavailable</CardTitle>
                 <CardDescription>
                   Sign in with GitHub to create repositories from inside
-                  Open-Hub.
+                  OpenHub.
                 </CardDescription>
               </CardHeader>
             </Card>

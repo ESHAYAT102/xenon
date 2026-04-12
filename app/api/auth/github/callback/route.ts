@@ -30,7 +30,11 @@ type GitHubEmailResponse = Array<{
   verified: boolean
 }>
 
-function redirectWithError(request: NextRequest, callbackUrl: string, error: string) {
+function redirectWithError(
+  request: NextRequest,
+  callbackUrl: string,
+  error: string
+) {
   const url = new URL(callbackUrl, request.nextUrl.origin)
   url.searchParams.set("authError", error)
   return NextResponse.redirect(url)
@@ -59,22 +63,28 @@ export async function GET(request: NextRequest) {
     return redirectWithError(request, callbackUrl, "missing_github_env")
   }
 
-  const redirectUri = new URL("/api/auth/github/callback", request.nextUrl.origin)
+  const redirectUri = new URL(
+    "/api/auth/github/callback",
+    request.nextUrl.origin
+  )
 
-  const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      client_id: clientId,
-      client_secret: clientSecret,
-      code,
-      redirect_uri: redirectUri.toString(),
-      state,
-    }),
-  })
+  const tokenResponse = await fetch(
+    "https://github.com/login/oauth/access_token",
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: redirectUri.toString(),
+        state,
+      }),
+    }
+  )
 
   const tokenData = (await tokenResponse.json()) as GitHubTokenResponse
 
@@ -89,7 +99,7 @@ export async function GET(request: NextRequest) {
   const authHeaders = {
     Accept: "application/vnd.github+json",
     Authorization: `Bearer ${tokenData.access_token}`,
-    "User-Agent": "Open-Hub",
+    "User-Agent": "OpenHub",
   }
 
   const userResponse = await fetch("https://api.github.com/user", {
@@ -112,7 +122,10 @@ export async function GET(request: NextRequest) {
     if (emailResponse.ok) {
       const emails = (await emailResponse.json()) as GitHubEmailResponse
       const primaryEmail = emails.find((item) => item.primary && item.verified)
-      email = primaryEmail?.email ?? emails.find((item) => item.verified)?.email ?? null
+      email =
+        primaryEmail?.email ??
+        emails.find((item) => item.verified)?.email ??
+        null
     }
   }
 
@@ -124,8 +137,14 @@ export async function GET(request: NextRequest) {
     name: githubUser.name,
   }
 
-  const response = NextResponse.redirect(new URL(callbackUrl, request.nextUrl.origin))
-  response.cookies.set(SESSION_COOKIE_NAME, encodeSessionCookie(sessionUser), sessionCookieOptions)
+  const response = NextResponse.redirect(
+    new URL(callbackUrl, request.nextUrl.origin)
+  )
+  response.cookies.set(
+    SESSION_COOKIE_NAME,
+    encodeSessionCookie(sessionUser),
+    sessionCookieOptions
+  )
   response.cookies.set(OAUTH_STATE_COOKIE_NAME, "", {
     ...oauthStateCookieOptions,
     maxAge: 0,

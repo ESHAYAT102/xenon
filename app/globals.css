@@ -145,3 +145,28 @@
   animation-delay: calc(var(--loader-index) * -120ms);
   opacity: 0;
 }
+
+::-webkit-scrollbar {
+  width: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.705 0.015 286.067);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.552 0.016 285.938);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(0.552 0.016 285.938);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.705 0.015 286.067);
+}

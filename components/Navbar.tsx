@@ -82,7 +82,7 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
                   Open in new tab
                 </ContextMenuItem>
               </A>
-              <A href="/ESHAYAT102/Open-Hub">
+              <A href="/ESHAYAT102/OpenHub">
                 <ContextMenuItem>
                   <BookMarked />
                   Open repository
@@ -96,7 +96,7 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
           }
         >
           <A href="/" className="flex items-center gap-2 font-bold">
-            <span>Open-Hub</span>
+            <span>OpenHub</span>
           </A>
         </BrowserContextMenu>
       </div>

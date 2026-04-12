@@ -284,7 +284,7 @@ function getHeaders(accessToken?: string) {
   return {
     Accept: "application/vnd.github+json",
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    "User-Agent": "Open-Hub",
+    "User-Agent": "OpenHub",
   }
 }
 
@@ -330,7 +330,11 @@ function readCacheEntry<T>(cache: Map<string, CacheEntry<T>>, key: string) {
   return entry
 }
 
-function writeCache<T>(cache: Map<string, CacheEntry<T>>, key: string, value: T) {
+function writeCache<T>(
+  cache: Map<string, CacheEntry<T>>,
+  key: string,
+  value: T
+) {
   cache.set(key, { expires: Date.now() + CACHE_TTL, value })
 }
 
@@ -572,14 +576,17 @@ export async function updateGitHubRepositoryMetadata(
     }
   }
 
-  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-    body: JSON.stringify(input),
-    headers: {
-      ...getHeaders(sessionUser.accessToken),
-      "Content-Type": "application/json",
-    },
-    method: "PATCH",
-  })
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}`,
+    {
+      body: JSON.stringify(input),
+      headers: {
+        ...getHeaders(sessionUser.accessToken),
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    }
+  )
 
   if (!response.ok) {
     return {
@@ -613,10 +620,13 @@ export async function deleteGitHubRepository(
     }
   }
 
-  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-    headers: getHeaders(sessionUser.accessToken),
-    method: "DELETE",
-  })
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}`,
+    {
+      headers: getHeaders(sessionUser.accessToken),
+      method: "DELETE",
+    }
+  )
 
   if (!response.ok) {
     return {
@@ -712,10 +722,13 @@ export async function forkGitHubRepository(
     return { error: "unauthorized" as const, status: 401 }
   }
 
-  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/forks`, {
-    headers: getHeaders(sessionUser.accessToken),
-    method: "POST",
-  })
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/forks`,
+    {
+      headers: getHeaders(sessionUser.accessToken),
+      method: "POST",
+    }
+  )
 
   return {
     error: response.ok ? null : ("request_failed" as const),
@@ -851,7 +864,10 @@ export async function getTrendingRepositories(sessionUser: SessionUser | null) {
 
   const result = await fetchJson<{
     items: GitHubRepository[]
-  }>(`https://api.github.com/search/repositories?${query.toString()}`, accessToken)
+  }>(
+    `https://api.github.com/search/repositories?${query.toString()}`,
+    accessToken
+  )
 
   return resolveRepositoryLanguages(result?.items ?? [], accessToken)
 }
@@ -1054,7 +1070,9 @@ export async function getGitHubRepositoryPageData(
           rateLimited: false,
           rateLimitReset: null,
         })
-      : fetchJsonWithStatus<GitHubRepositoryContent[] | GitHubRepositoryContent>(
+      : fetchJsonWithStatus<
+          GitHubRepositoryContent[] | GitHubRepositoryContent
+        >(
           `https://api.github.com/repos/${owner}/${repo}/contents${refQuery}`,
           accessToken
         ),
@@ -1094,15 +1112,15 @@ export async function getGitHubRepositoryPageData(
   }
 
   if (!readmeEntry) {
-    writeCache(
-      readmeCache,
-      readmeCacheKey,
-      readmeResult.data ?? null
-    )
+    writeCache(readmeCache, readmeCacheKey, readmeResult.data ?? null)
   }
 
   if (selectedCacheKey && !selectedEntry) {
-    writeCache(selectedItemCache, selectedCacheKey, selectedItemResult.data ?? null)
+    writeCache(
+      selectedItemCache,
+      selectedCacheKey,
+      selectedItemResult.data ?? null
+    )
   }
 
   const contents = Array.isArray(contentsResult.data)
@@ -1122,7 +1140,11 @@ export async function getGitHubRepositoryPageData(
     readmeResult.rateLimited ||
     selectedItemResult.rateLimited
   const rateLimitReset =
-    [contentsResult.rateLimitReset, readmeResult.rateLimitReset, selectedItemResult.rateLimitReset]
+    [
+      contentsResult.rateLimitReset,
+      readmeResult.rateLimitReset,
+      selectedItemResult.rateLimitReset,
+    ]
       .filter((value): value is number => typeof value === "number")
       .sort((a, b) => b - a)[0] ?? null
   const selectedData = selectedItemResult.data
@@ -1131,39 +1153,41 @@ export async function getGitHubRepositoryPageData(
     contents,
     rateLimited,
     rateLimitReset,
-    selectedItem: selectedData && selectedData.type === "file"
-      ? {
-          downloadUrl: selectedData.download_url,
-          htmlUrl: selectedData.html_url,
-          isImage: isImagePath(selectedData.name),
-          isMarkdown: selectedData.name.toLowerCase().endsWith(".md"),
-          isText:
-            !isImagePath(selectedData.name) && !isVideoPath(selectedData.name),
-          isVideo: isVideoPath(selectedData.name),
-          name: selectedData.name,
-          path: selectedData.path,
-          sha: selectedData.sha ?? "",
-          text:
-            selectedData.content &&
-            selectedData.encoding === "base64" &&
-            !isImagePath(selectedData.name) &&
-            !isVideoPath(selectedData.name)
-              ? decodeBase64Content(selectedData.content)
-              : selectedData.content && !selectedData.encoding
-                ? selectedData.content
-                : "",
-          type: "file",
-        }
-      : null,
-    readme: readmeResult.data
+    selectedItem:
+      selectedData && selectedData.type === "file"
         ? {
-            htmlUrl: readmeResult.data.html_url,
-            markdown: decodeBase64Content(readmeResult.data.content),
-            name: readmeResult.data.name,
-            path: readmeResult.data.path,
-            sha: readmeResult.data.sha,
+            downloadUrl: selectedData.download_url,
+            htmlUrl: selectedData.html_url,
+            isImage: isImagePath(selectedData.name),
+            isMarkdown: selectedData.name.toLowerCase().endsWith(".md"),
+            isText:
+              !isImagePath(selectedData.name) &&
+              !isVideoPath(selectedData.name),
+            isVideo: isVideoPath(selectedData.name),
+            name: selectedData.name,
+            path: selectedData.path,
+            sha: selectedData.sha ?? "",
+            text:
+              selectedData.content &&
+              selectedData.encoding === "base64" &&
+              !isImagePath(selectedData.name) &&
+              !isVideoPath(selectedData.name)
+                ? decodeBase64Content(selectedData.content)
+                : selectedData.content && !selectedData.encoding
+                  ? selectedData.content
+                  : "",
+            type: "file",
           }
         : null,
+    readme: readmeResult.data
+      ? {
+          htmlUrl: readmeResult.data.html_url,
+          markdown: decodeBase64Content(readmeResult.data.content),
+          name: readmeResult.data.name,
+          path: readmeResult.data.path,
+          sha: readmeResult.data.sha,
+        }
+      : null,
     repository,
   } satisfies GitHubRepositoryPageData
 }
@@ -1391,7 +1415,9 @@ export async function getGitHubRepositoryCommitCount(
     return 0
   }
 
-  return getLastPageFromLinkHeader(response.headers.get("link")) ?? commits.length
+  return (
+    getLastPageFromLinkHeader(response.headers.get("link")) ?? commits.length
+  )
 }
 
 export async function getGitHubRepositoryIssues(

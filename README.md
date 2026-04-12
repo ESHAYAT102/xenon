@@ -1,4 +1,4 @@
-Open-Hub is a GitHub client focused on fast navigation, rich repo browsing, and keyboard-driven workflows.
+OpenHub is a GitHub client focused on fast navigation, rich repo browsing, and keyboard-driven workflows.
 
 Features
 
