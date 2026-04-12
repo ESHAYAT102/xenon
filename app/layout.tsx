@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google"
 import type { Metadata } from "next"
+import Script from "next/script"
 
 import AuthProvider from "@/components/AuthProvider"
 import "./globals.css"
@@ -21,29 +22,6 @@ export const metadata: Metadata = {
   title: "Open-Hub",
   description:
     "Open-Hub is a GitHub client with repo browsing, profiles, command palette, and in-app actions.",
-  icons: {
-    icon: [
-      {
-        url: "/logo_light.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/logo_dark.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-    ],
-    apple: [
-      {
-        url: "/logo_light.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/logo_dark.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-    ],
-    shortcut: "/logo_light.png",
-  },
 }
 
 export default async function RootLayout({
@@ -66,6 +44,11 @@ export default async function RootLayout({
       )}
     >
       <body>
+        <Script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="d67f8207-6850-461e-9db7-c1f6d0617387"
+        />
         <AuthProvider user={user}>
           <ThemeProvider>
             {children}
