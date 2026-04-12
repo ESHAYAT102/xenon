@@ -81,6 +81,7 @@ export default function RepositoryTabs({
           <button
             onClick={() => handleTabClick("code")}
             className={tabLinkClass(activeTab === "code")}
+            data-repo-tab-code
           >
             <Code className="size-4" />
             Code
@@ -88,6 +89,7 @@ export default function RepositoryTabs({
           <button
             onClick={() => handleTabClick("commits")}
             className={tabLinkClass(activeTab === "commits")}
+            data-repo-tab-commits
           >
             <GitCommitHorizontal className="size-4" />
             Commits
@@ -96,6 +98,7 @@ export default function RepositoryTabs({
           <button
             onClick={() => handleTabClick("issues")}
             className={tabLinkClass(activeTab === "issues")}
+            data-repo-tab-issues
           >
             <CircleDot className="size-4" />
             Issues
@@ -104,6 +107,7 @@ export default function RepositoryTabs({
           <button
             onClick={() => handleTabClick("pulls")}
             className={tabLinkClass(activeTab === "pulls")}
+            data-repo-tab-pulls
           >
             <GitPullRequest className="size-4" />
             Pull Requests
@@ -114,6 +118,7 @@ export default function RepositoryTabs({
           <button
             onClick={() => handleTabClick("releases")}
             className={tabLinkClass(activeTab === "releases")}
+            data-repo-tab-releases
           >
             <Tag className="size-4" />
             Releases
@@ -127,6 +132,7 @@ export default function RepositoryTabs({
             <button
               onClick={() => handleTabClick("settings")}
               className={tabLinkClass(activeTab === "settings")}
+              data-repo-tab-settings
             >
               <Settings className="size-4" />
               Settings

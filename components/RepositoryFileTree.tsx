@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Bun,
   Docker,
@@ -11,7 +11,6 @@ import {
   Image as ImageFile,
   Js,
   License,
-  Lock,
   Markdown,
   Next,
   NPM,
@@ -131,7 +130,7 @@ export function getRepositoryItemIcon(
   }
 
   if (name === "package-lock.json") {
-    return <Lock className="size-4 text-muted-foreground" />
+    return <NPM className="size-4 text-muted-foreground" />
   }
 
   if (name.startsWith("tsconfig")) {
@@ -179,16 +178,38 @@ export function getRepositoryItemIcon(
     return <Js className="size-4 text-muted-foreground" />
   }
 
+  if (name.endsWith(".html") || name.endsWith(".htm")) {
+    return <Document className="size-4 text-muted-foreground" />
+  }
+
+  if (/\.(css|scss|sass|less)$/.test(name)) {
+    return <Document className="size-4 text-muted-foreground" />
+  }
+
+  if (/\.(json|jsonc)$/.test(name)) {
+    return <Document className="size-4 text-muted-foreground" />
+  }
+
+  if (name === ".env" || name.startsWith(".env.") || name === ".envrc") {
+    return <Document className="size-4 text-muted-foreground" />
+  }
+
+  if (
+    name === ".prettierrc" ||
+    name.startsWith(".prettierrc.") ||
+    name === "prettier.config.js" ||
+    name === "prettier.config.mjs" ||
+    name === "prettier.config.cjs"
+  ) {
+    return <Document className="size-4 text-muted-foreground" />
+  }
+
   if (/\.(png|jpe?g|gif|webp|avif|bmp|ico)$/.test(name)) {
     return <ImageFile className="size-4 text-muted-foreground" />
   }
 
   if (name.endsWith(".svg")) {
     return <SVG className="size-4 text-muted-foreground" />
-  }
-
-  if (/\.(json|jsonc)$/.test(name)) {
-    return <Document className="size-4 text-muted-foreground" />
   }
 
   if (/\.(yml|yaml)$/.test(name)) {
@@ -207,7 +228,7 @@ export function getRepositoryItemIcon(
     return <Python className="size-4 text-muted-foreground" />
   }
 
-  if (/\.(html?|css|scss|sass|less|txt|env|ini|toml|xml)$/.test(name)) {
+  if (/\.(txt|ini|toml|xml)$/.test(name)) {
     return <Text className="size-4 text-muted-foreground" />
   }
 
@@ -231,8 +252,24 @@ function RepositoryFileTreeInner({
   const inflightRequestsRef = useRef<
     Partial<Record<string, Promise<GitHubRepositoryContent[]>>>
   >({})
+  const prefetchedRef = useRef(false)
 
   const rootItems = useMemo(() => initialContents, [initialContents])
+
+  useEffect(() => {
+    if (prefetchedRef.current || initialContents.length === 0) return
+    prefetchedRef.current = true
+
+    const directories = initialContents
+      .filter((item) => item.type === "dir")
+      .map((item) => item.path)
+
+    if (directories.length === 0) return
+
+    Promise.all(
+      directories.map((path) => loadDirectoryContents(path, false))
+    ).catch(() => {})
+  }, [initialContents])
 
   const loadDirectoryContents = async (path: string, showLoading = true) => {
     if (childrenByPath[path]) {

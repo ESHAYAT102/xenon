@@ -1441,14 +1441,14 @@ export async function getGitHubRepositoryIssueCount(
   sessionUser: SessionUser | null
 ) {
   const accessToken = sessionUser?.accessToken
-  const result = await fetchJson<{
-    total_count: number
-  }>(
-    `https://api.github.com/search/issues?q=${encodeURIComponent(`repo:${owner}/${repo} type:issue state:open`)}`,
+  const query = encodeURIComponent(`repo:${owner}/${repo} is:issue is:open`)
+
+  const result = await fetchJsonWithStatus<{ total_count: number }>(
+    `https://api.github.com/search/issues?q=${query}&per_page=1`,
     accessToken
   )
 
-  return result?.total_count ?? 0
+  return result?.data?.total_count ?? 0
 }
 
 export async function getGitHubRepositoryPullRequests(
