@@ -1507,6 +1507,76 @@ export async function getGitHubNotifications(
   }))
 }
 
+export async function markGitHubNotificationAsRead(
+  sessionUser: SessionUser | null,
+  threadId: string
+) {
+  if (!sessionUser?.accessToken) {
+    return { error: "unauthorized" as const, status: 401 }
+  }
+
+  const response = await fetch(
+    `https://api.github.com/notifications/threads/${threadId}`,
+    {
+      headers: getHeaders(sessionUser.accessToken),
+      method: "PATCH",
+    }
+  )
+
+  return {
+    error: response.ok ? null : ("request_failed" as const),
+    status: response.status,
+  }
+}
+
+export async function markGitHubNotificationAsDone(
+  sessionUser: SessionUser | null,
+  threadId: string
+) {
+  if (!sessionUser?.accessToken) {
+    return { error: "unauthorized" as const, status: 401 }
+  }
+
+  const response = await fetch(
+    `https://api.github.com/notifications/threads/${threadId}`,
+    {
+      headers: getHeaders(sessionUser.accessToken),
+      method: "DELETE",
+    }
+  )
+
+  return {
+    error: response.ok ? null : ("request_failed" as const),
+    status: response.status,
+  }
+}
+
+export async function unsubscribeFromGitHubNotification(
+  sessionUser: SessionUser | null,
+  threadId: string
+) {
+  if (!sessionUser?.accessToken) {
+    return { error: "unauthorized" as const, status: 401 }
+  }
+
+  const response = await fetch(
+    `https://api.github.com/notifications/threads/${threadId}/subscription`,
+    {
+      body: JSON.stringify({ ignored: true }),
+      headers: {
+        ...getHeaders(sessionUser.accessToken),
+        "Content-Type": "application/json",
+      },
+      method: "PUT",
+    }
+  )
+
+  return {
+    error: response.ok ? null : ("request_failed" as const),
+    status: response.status,
+  }
+}
+
 function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
   switch (event.type) {
     case "PushEvent":

@@ -27,6 +27,7 @@ import { Kbd, KbdGroup } from "@/components/ui/kbd"
 type CommandPaletteProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onOpenNotificationsChange?: (open: boolean) => void
 }
 
 type CommandItem = {
@@ -74,6 +75,7 @@ const MAX_RECENTS = 12
 export default function CommandPalette({
   open,
   onOpenChange,
+  onOpenNotificationsChange,
 }: CommandPaletteProps) {
   const router = useRouter()
   const { user } = useAuth()
@@ -173,12 +175,20 @@ export default function CommandPalette({
           requestAnimationFrame(() => inputRef.current?.focus())
           return
         }
+
+        if (item.id === "notifications" && onOpenNotificationsChange) {
+          markCommandUsed(item.id)
+          onOpenChange(false)
+          onOpenNotificationsChange(true)
+          return
+        }
+
         markCommandUsed(item.id)
         onOpenChange(false)
         router.push(item.href)
       },
     }))
-  }, [items, onOpenChange, router])
+  }, [items, onOpenChange, onOpenNotificationsChange, router])
 
   const actionEntries = useMemo<CommandAction[]>(() => {
     const signItem = user
@@ -544,7 +554,11 @@ export default function CommandPalette({
         .catch(() => toast.error("Could not copy URL"))
     })
     map.set("settings", () => router.push("/settings"))
-    map.set("notifications", () => router.push("/notifications"))
+    map.set("notifications", () => {
+      if (onOpenNotificationsChange) {
+        onOpenNotificationsChange(true)
+      }
+    })
     map.set("profile", () => {
       if (user?.login) router.push(`/${user.login}`)
     })
@@ -580,7 +594,7 @@ export default function CommandPalette({
     })
 
     return map
-  }, [resolvedTheme, router, setTheme, user?.login])
+  }, [onOpenNotificationsChange, resolvedTheme, router, setTheme, user?.login])
 
   const executeSlashCommand = async (command: string, argument: string) => {
     if (command === "home") {
@@ -622,7 +636,9 @@ export default function CommandPalette({
 
     if (["notifications", "notifs", "inbox"].includes(command)) {
       onOpenChange(false)
-      router.push("/notifications")
+      if (onOpenNotificationsChange) {
+        onOpenNotificationsChange(true)
+      }
       return
     }
 

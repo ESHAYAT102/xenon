@@ -45,6 +45,7 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
   const { user } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
   const [isCommandOpen, setIsCommandOpen] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const profileUrl = useMemo(
     () => (user?.login ? `/${user.login}` : "/"),
     [user?.login]
@@ -65,7 +66,11 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
 
   return (
     <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-primary-foreground/50 px-8 py-4 backdrop-blur-md">
-      <CommandPalette open={isCommandOpen} onOpenChange={setIsCommandOpen} />
+      <CommandPalette
+        open={isCommandOpen}
+        onOpenChange={setIsCommandOpen}
+        onOpenNotificationsChange={setIsNotificationsOpen}
+      />
       <div className="flex items-center">
         <BrowserContextMenu
           triggerClassName="flex items-center justify-center"
@@ -127,6 +132,8 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
             </A>
           </Button>
           <NotificationsDrawer
+            open={isNotificationsOpen}
+            onOpenChange={setIsNotificationsOpen}
             initialNotifications={initialUnreadNotifications}
           />
         </div>
@@ -221,12 +228,13 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
                   Create repository
                 </DropdownMenuItem>
               </A>
-              <A href="/notifications">
-                <DropdownMenuItem className="hover:bg-accent-foreground/10">
-                  <Bell className="mr-2 size-4" />
-                  Notifications
-                </DropdownMenuItem>
-              </A>
+              <DropdownMenuItem
+                className="hover:bg-accent-foreground/10"
+                onClick={() => setIsNotificationsOpen(true)}
+              >
+                <Bell className="mr-2 size-4" />
+                Notifications
+              </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

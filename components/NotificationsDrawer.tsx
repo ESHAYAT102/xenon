@@ -13,16 +13,22 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import type { GitHubNotification } from "@/lib/github"
-import A from "./A"
 
 type NotificationsDrawerProps = {
   initialNotifications: GitHubNotification[]
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 export default function NotificationsDrawer({
   initialNotifications,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
 }: NotificationsDrawerProps) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = setControlledOpen ?? setInternalOpen
+  const [unreadOnly, setUnreadOnly] = useState(true)
   const [notifications, setNotifications] =
     useState<GitHubNotification[]>(initialNotifications)
 
@@ -32,9 +38,12 @@ export default function NotificationsDrawer({
     let cancelled = false
 
     async function loadNotifications() {
-      const response = await fetch("/api/notifications?unreadOnly=true", {
-        cache: "no-store",
-      })
+      const response = await fetch(
+        `/api/notifications?unreadOnly=${unreadOnly}`,
+        {
+          cache: "no-store",
+        }
+      )
 
       if (!response.ok) return
 
@@ -52,7 +61,7 @@ export default function NotificationsDrawer({
     return () => {
       cancelled = true
     }
-  }, [open])
+  }, [open, unreadOnly])
 
   return (
     <Drawer direction="right" open={open} onOpenChange={setOpen}>
@@ -76,21 +85,19 @@ export default function NotificationsDrawer({
             </div>
             <div className="flex items-center gap-3 pt-0.5">
               <Button
-                asChild
                 variant="ghost"
                 className="h-auto rounded-none px-0 py-0 text-[13px] font-medium text-foreground hover:bg-transparent hover:text-foreground"
+                onClick={() => setUnreadOnly(!unreadOnly)}
               >
-                <A href="/notifications">View all</A>
+                {unreadOnly ? "Show all" : "Show unread"}
               </Button>
             </div>
           </div>
         </DrawerHeader>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <NotificationsPanel
-            notifications={notifications.filter(
-              (notification) => notification.unread
-            )}
-            emptyLabel="All caught up"
+            notifications={notifications}
+            emptyLabel={unreadOnly ? "All caught up" : "No notifications"}
           />
         </div>
       </DrawerContent>
