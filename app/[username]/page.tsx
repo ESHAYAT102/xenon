@@ -101,10 +101,8 @@ function buildLanguageDistribution(
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = await params
   const sessionUser = await getSessionUser()
-  const profileData = await getGitHubProfilePageData(
-    username,
-    sessionUser
-  )
+  const profileData = await getGitHubProfilePageData(username, sessionUser)
+
   if (profileData.rateLimited) {
     const rateLimitTime = profileData.rateLimitReset
       ? new Intl.DateTimeFormat("en", {
@@ -136,15 +134,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     )
   }
 
-  const unreadNotifications = await getGitHubNotifications(sessionUser, {
-    unreadOnly: true,
-  })
-  const activity = await getGitHubActivity(username, sessionUser)
-  const starredRepositories = await getGitHubStarredRepositories(
-    username,
-    sessionUser
-  )
   const { profile, repositories } = profileData
+
+  const [unreadNotifications, activity, starredRepositories] = sessionUser
+    ? await Promise.all([
+        getGitHubNotifications(sessionUser, { unreadOnly: true }),
+        getGitHubActivity(username, sessionUser),
+        getGitHubStarredRepositories(username, sessionUser),
+      ])
+    : [undefined, [], []]
 
   const totalStars = repositories.reduce(
     (sum, repository) => sum + repository.stargazers_count,

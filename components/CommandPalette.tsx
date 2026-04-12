@@ -23,6 +23,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/components/AuthProvider"
 import { useTheme } from "next-themes"
 import { Kbd, KbdGroup } from "@/components/ui/kbd"
+import { usePrefetchRoutes } from "@/hooks/usePrefetchRoutes"
 
 type CommandPaletteProps = {
   open: boolean
@@ -799,6 +800,12 @@ export default function CommandPalette({
     ],
     []
   )
+
+  const searchPrefetchPaths = useMemo(() => {
+    return searchResults.repositories.map((repo) => `/${repo.fullName}`)
+  }, [searchResults.repositories])
+
+  usePrefetchRoutes(searchPrefetchPaths)
 
   return (
     <Command.Dialog

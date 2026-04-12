@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import {
-  Code,
   CircleDot,
   Eye,
   EyeOff,
@@ -9,7 +8,6 @@ import {
   GitFork,
   GitPullRequest,
   Globe,
-  Settings,
   SquareArrowOutUpRight,
   Tag,
 } from "lucide-react"
@@ -25,6 +23,7 @@ import RepositoryFileTree from "@/components/RepositoryFileTree"
 import RepositoryFilePreview from "@/components/RepositoryFilePreview"
 import RepoKeyboardShortcuts from "@/components/RepoKeyboardShortcuts"
 import RepositorySettingsForm from "@/components/RepositorySettingsForm"
+import RepositoryTabs from "@/components/RepositoryTabs"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ContextMenuItem } from "@/components/ui/context-menu"
@@ -135,17 +134,25 @@ export default async function RepositoryPage({
   const { username, repo } = await params
   const { branch, commit, path, tab } = await searchParams
   const sessionUser = await getSessionUser()
-  const unreadNotifications = await getGitHubNotifications(sessionUser, {
-    unreadOnly: true,
-  })
   const commitRef = commit?.trim() || undefined
-  const data = await getGitHubRepositoryPageData(
-    username,
-    repo,
-    sessionUser,
-    path,
-    commitRef ?? branch
-  )
+
+  const [[unreadNotifications, repositoryPageData], branches, isStarred] =
+    await Promise.all([
+      Promise.all([
+        getGitHubNotifications(sessionUser, { unreadOnly: true }),
+        getGitHubRepositoryPageData(
+          username,
+          repo,
+          sessionUser,
+          path,
+          commitRef ?? branch
+        ),
+      ]),
+      getGitHubRepositoryBranches(username, repo, sessionUser),
+      isGitHubRepositoryStarred(sessionUser, username, repo),
+    ])
+
+  const data = repositoryPageData
 
   if (!data) {
     notFound()
@@ -159,12 +166,6 @@ export default async function RepositoryPage({
     rateLimited,
     rateLimitReset,
   } = data
-  const branches = await getGitHubRepositoryBranches(
-    username,
-    repo,
-    sessionUser
-  )
-  const isStarred = await isGitHubRepositoryStarred(sessionUser, username, repo)
   const resolvedBranch = branch ?? repository.default_branch ?? "main"
   const isCommitRef = Boolean(commitRef)
   const canManageRepository =
@@ -188,15 +189,9 @@ export default async function RepositoryPage({
     pullRequestCount,
     repositoryLanguages,
   ] = await Promise.all([
-    currentTab === "commits"
-      ? getGitHubRepositoryCommits(username, repo, sessionUser, resolvedBranch)
-      : Promise.resolve([]),
-    currentTab === "issues"
-      ? getGitHubRepositoryIssues(username, repo, sessionUser)
-      : Promise.resolve([]),
-    currentTab === "pulls"
-      ? getGitHubRepositoryPullRequests(username, repo, sessionUser)
-      : Promise.resolve([]),
+    getGitHubRepositoryCommits(username, repo, sessionUser, resolvedBranch),
+    getGitHubRepositoryIssues(username, repo, sessionUser),
+    getGitHubRepositoryPullRequests(username, repo, sessionUser),
     getGitHubRepositoryReleases(username, repo, sessionUser),
     getGitHubRepositoryCommitCount(username, repo, sessionUser, resolvedBranch),
     getGitHubRepositoryIssueCount(username, repo, sessionUser),
@@ -219,26 +214,6 @@ export default async function RepositoryPage({
         minute: "2-digit",
       }).format(new Date(rateLimitReset))
     : null
-
-  const codeTabHref = commitRef
-    ? path
-      ? `/${username}/${repo}?commit=${encodeURIComponent(commitRef)}&branch=${encodeURIComponent(resolvedBranch)}&path=${encodeURIComponent(path)}`
-      : `/${username}/${repo}?commit=${encodeURIComponent(commitRef)}&branch=${encodeURIComponent(resolvedBranch)}`
-    : resolvedBranch
-      ? path
-        ? `/${username}/${repo}?branch=${encodeURIComponent(resolvedBranch)}&path=${encodeURIComponent(path)}`
-        : `/${username}/${repo}?branch=${encodeURIComponent(resolvedBranch)}`
-      : path
-        ? `/${username}/${repo}?path=${encodeURIComponent(path)}`
-        : `/${username}/${repo}`
-
-  const tabLinkClass = (isActive: boolean) =>
-    [
-      "inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm transition",
-      isActive
-        ? "border-foreground text-foreground"
-        : "border-transparent text-muted-foreground hover:text-foreground",
-    ].join(" ")
 
   return (
     <BrowserContextMenu triggerClassName="block min-h-screen w-full">
@@ -376,376 +351,309 @@ export default async function RepositoryPage({
               </div>
             </div>
 
-            <div className="border-b border-border">
-              <div className="flex flex-wrap items-center gap-5">
-                <A
-                  href={codeTabHref}
-                  className={tabLinkClass(currentTab === "code")}
-                  data-repo-tab-code
-                >
-                  <Code className="size-4" />
-                  Code
-                </A>
-                <A
-                  href={`/${username}/${repo}?tab=commits${resolvedBranch ? `&branch=${encodeURIComponent(resolvedBranch)}` : ""}`}
-                  className={tabLinkClass(currentTab === "commits")}
-                  data-repo-tab-commits
-                >
-                  <GitCommitHorizontal className="size-4" />
-                  Commits
-                  <span className="text-xs text-muted-foreground">
-                    {commitCount}
-                  </span>
-                </A>
-                <A
-                  href={`/${username}/${repo}?tab=issues${resolvedBranch ? `&branch=${encodeURIComponent(resolvedBranch)}` : ""}`}
-                  className={tabLinkClass(currentTab === "issues")}
-                  data-repo-tab-issues
-                >
-                  <CircleDot className="size-4" />
-                  Issues
-                  <span className="text-xs text-muted-foreground">
-                    {issueCount}
-                  </span>
-                </A>
-                <A
-                  href={`/${username}/${repo}?tab=pulls${resolvedBranch ? `&branch=${encodeURIComponent(resolvedBranch)}` : ""}`}
-                  className={tabLinkClass(currentTab === "pulls")}
-                  data-repo-tab-pulls
-                >
-                  <GitPullRequest className="size-4" />
-                  Pull Requests
-                  <span className="text-xs text-muted-foreground">
-                    {pullRequestCount}
-                  </span>
-                </A>
-                <A
-                  href={`/${username}/${repo}?tab=releases${resolvedBranch ? `&branch=${encodeURIComponent(resolvedBranch)}` : ""}`}
-                  className={tabLinkClass(currentTab === "releases")}
-                  data-repo-tab-releases
-                >
-                  <Tag className="size-4" />
-                  Releases
-                  {latestRelease ? (
-                    <span className="text-xs text-muted-foreground">
-                      {latestRelease.tag_name}
-                    </span>
-                  ) : null}
-                </A>
-                {canManageRepository ? (
-                  <A
-                    href={`/${username}/${repo}?tab=settings${resolvedBranch ? `&branch=${encodeURIComponent(resolvedBranch)}` : ""}`}
-                    className={tabLinkClass(currentTab === "settings")}
-                    data-repo-tab-settings
-                  >
-                    <Settings className="size-4" />
-                    Settings
-                  </A>
-                ) : null}
-              </div>
-            </div>
+            <RepositoryTabs
+              canManageRepository={canManageRepository}
+              commitCount={commitCount}
+              currentTab={currentTab}
+              issueCount={issueCount}
+              latestRelease={latestRelease}
+              pullRequestCount={pullRequestCount}
+              repo={repo}
+              resolvedBranch={resolvedBranch}
+              username={username}
+              codeContent={
+                showRateLimitNotice ? (
+                  <Card className="rounded-2xl">
+                    <CardContent className="px-5 py-12">
+                      <Empty>
+                        <EmptyHeader>
+                          <EmptyTitle className="text-xl">
+                            Rate limit reached
+                          </EmptyTitle>
+                          <EmptyDescription>
+                            GitHub API rate limits were hit.{" "}
+                            {rateLimitTime
+                              ? `Try again after ${rateLimitTime}.`
+                              : "Try again in a few minutes."}
+                          </EmptyDescription>
+                        </EmptyHeader>
+                        <EmptyContent />
+                      </Empty>
+                    </CardContent>
+                  </Card>
+                ) : isOwnedEmptyRepository ? (
+                  <EmptyRepositoryInstructions
+                    remoteUrl={repository.html_url}
+                  />
+                ) : (
+                  <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+                    <div className="space-y-4">
+                      <Card className="self-start rounded-2xl">
+                        <CardContent className="p-0">
+                          {contents.length > 0 ? (
+                            <RepositoryFileTree
+                              branch={contentRef}
+                              initialContents={contents}
+                              owner={username}
+                              repo={repo}
+                              selectedPath={path}
+                            />
+                          ) : (
+                            <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                              No repository contents available.
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
 
-            <div className="grid gap-6">
-              <section className="space-y-6">
-                {currentTab === "code" ? (
-                  showRateLimitNotice ? (
-                    <Card className="rounded-2xl">
-                      <CardContent className="px-5 py-12">
-                        <Empty>
-                          <EmptyHeader>
-                            <EmptyTitle className="text-xl">
-                              Rate limit reached
-                            </EmptyTitle>
-                            <EmptyDescription>
-                              GitHub API rate limits were hit.{" "}
-                              {rateLimitTime
-                                ? `Try again after ${rateLimitTime}.`
-                                : "Try again in a few minutes."}
-                            </EmptyDescription>
-                          </EmptyHeader>
-                          <EmptyContent />
-                        </Empty>
-                      </CardContent>
-                    </Card>
-                  ) : isOwnedEmptyRepository ? (
-                    <EmptyRepositoryInstructions
-                      remoteUrl={repository.html_url}
-                    />
-                  ) : (
-                    <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-                      <div className="space-y-4">
-                        <Card className="self-start rounded-2xl">
-                          <CardContent className="p-0">
-                            {contents.length > 0 ? (
-                              <RepositoryFileTree
-                                branch={contentRef}
-                                initialContents={contents}
-                                owner={username}
-                                repo={repo}
-                                selectedPath={path}
-                              />
-                            ) : (
-                              <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                                No repository contents available.
-                              </div>
-                            )}
+                      {languageDistribution.length > 0 ? (
+                        <Card className="rounded-2xl">
+                          <CardContent className="space-y-3 px-5 py-4">
+                            <div className="text-[11px] tracking-[0.25em] text-muted-foreground uppercase">
+                              Languages
+                            </div>
+                            <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
+                              {languageDistribution.map((language) => (
+                                <div
+                                  key={language.language}
+                                  className={language.colorClass}
+                                  style={{ width: `${language.percentage}%` }}
+                                />
+                              ))}
+                            </div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-2 text-[11px] text-muted-foreground">
+                              {languageDistribution.map((language) => (
+                                <div
+                                  key={language.language}
+                                  className="flex items-center gap-2"
+                                >
+                                  <span
+                                    className={`size-2 rounded-full ${language.colorClass}`}
+                                  />
+                                  <span>
+                                    {language.language} {language.percentage}%
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </CardContent>
                         </Card>
-
-                        {languageDistribution.length > 0 ? (
-                          <Card className="rounded-2xl">
-                            <CardContent className="space-y-3 px-5 py-4">
-                              <div className="text-[11px] tracking-[0.25em] text-muted-foreground uppercase">
-                                Languages
-                              </div>
-                              <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
-                                {languageDistribution.map((language) => (
-                                  <div
-                                    key={language.language}
-                                    className={language.colorClass}
-                                    style={{ width: `${language.percentage}%` }}
-                                  />
-                                ))}
-                              </div>
-                              <div className="flex flex-wrap gap-x-3 gap-y-2 text-[11px] text-muted-foreground">
-                                {languageDistribution.map((language) => (
-                                  <div
-                                    key={language.language}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <span
-                                      className={`size-2 rounded-full ${language.colorClass}`}
-                                    />
-                                    <span>
-                                      {language.language} {language.percentage}%
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ) : null}
-                      </div>
-
-                      <div className="space-y-6">
-                        <RepositoryFilePreview
-                          branch={contentRef}
-                          canEdit={canEditRepository}
-                          owner={username}
-                          readme={readme}
-                          repo={repo}
-                          selectedItem={selectedItem}
-                        />
-                      </div>
+                      ) : null}
                     </div>
-                  )
-                ) : null}
 
-                {currentTab === "commits" ? (
-                  <Card className="rounded-2xl">
-                    <CardHeader className="border-b border-border px-5 py-4">
-                      <CardTitle className="flex items-center gap-3 text-base">
-                        <GitCommitHorizontal className="size-4" />
-                        Commits
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {commits.length > 0 ? (
-                        <div className="divide-y divide-border">
-                          {commits.map((commit) => (
-                            <A
-                              key={commit.sha}
-                              href={`/${username}/${repo}?commit=${encodeURIComponent(commit.sha)}&branch=${encodeURIComponent(resolvedBranch)}`}
-                              className="block px-5 py-4 transition hover:bg-accent/20"
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="truncate text-sm font-medium text-foreground">
-                                    {commit.commit.message.split("\n")[0]}
-                                  </div>
-                                  <div className="mt-1 text-xs text-muted-foreground">
-                                    {commit.commit.author?.name ?? "Unknown"} ·{" "}
-                                    {commit.sha.slice(0, 7)}
-                                  </div>
+                    <div className="space-y-6">
+                      <RepositoryFilePreview
+                        branch={contentRef}
+                        canEdit={canEditRepository}
+                        owner={username}
+                        readme={readme}
+                        repo={repo}
+                        selectedItem={selectedItem}
+                      />
+                    </div>
+                  </div>
+                )
+              }
+              commitsContent={
+                <Card className="rounded-2xl">
+                  <CardHeader className="border-b border-border px-5 py-4">
+                    <CardTitle className="flex items-center gap-3 text-base">
+                      <GitCommitHorizontal className="size-4" />
+                      Commits
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {commits.length > 0 ? (
+                      <div className="divide-y divide-border">
+                        {commits.map((commit) => (
+                          <A
+                            key={commit.sha}
+                            href={`/${username}/${repo}?commit=${encodeURIComponent(commit.sha)}&branch=${encodeURIComponent(resolvedBranch)}`}
+                            className="block px-5 py-4 transition hover:bg-accent/20"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="max-w-[70ch] truncate text-sm font-medium text-foreground">
+                                  {commit.commit.message.split("\n")[0]}
                                 </div>
-                                <div className="shrink-0 text-xs text-muted-foreground">
-                                  {formatRelativeDate(
-                                    commit.commit.author?.date ??
-                                      repository.updated_at
-                                  )}
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {commit.commit.author?.name ?? "Unknown"} ·{" "}
+                                  {commit.sha.slice(0, 7)}
                                 </div>
                               </div>
-                            </A>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                          No commits available for this branch.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ) : null}
-
-                {currentTab === "issues" ? (
-                  <Card className="rounded-2xl">
-                    <CardHeader className="border-b border-border px-5 py-4">
-                      <CardTitle className="flex items-center gap-3 text-base">
-                        <CircleDot className="size-4" />
-                        Issues
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {issues.length > 0 ? (
-                        <div className="divide-y divide-border">
-                          {issues.map((issue) => (
-                            <A
-                              key={issue.number}
-                              href={issue.html_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block px-5 py-4 transition hover:bg-accent/20"
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="truncate text-sm font-medium text-foreground">
-                                    {issue.title}
-                                  </div>
-                                  <div className="mt-1 text-xs text-muted-foreground">
-                                    #{issue.number} opened by{" "}
-                                    {issue.user?.login ?? "unknown"} ·{" "}
-                                    {issue.comments} comments
-                                  </div>
-                                </div>
-                                <Badge variant="outline">{issue.state}</Badge>
+                              <div className="shrink-0 text-xs text-muted-foreground">
+                                {formatRelativeDate(
+                                  commit.commit.author?.date ??
+                                    repository.updated_at
+                                )}
                               </div>
-                            </A>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                          No open issues found.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ) : null}
-
-                {currentTab === "pulls" ? (
-                  <Card className="rounded-2xl">
-                    <CardHeader className="border-b border-border px-5 py-4">
-                      <CardTitle className="flex items-center gap-3 text-base">
-                        <GitPullRequest className="size-4" />
-                        Pull Requests
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {pullRequests.length > 0 ? (
-                        <div className="divide-y divide-border">
-                          {pullRequests.map((pullRequest) => (
-                            <A
-                              key={pullRequest.number}
-                              href={pullRequest.html_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block px-5 py-4 transition hover:bg-accent/20"
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="truncate text-sm font-medium text-foreground">
-                                    {pullRequest.title}
-                                  </div>
-                                  <div className="mt-1 text-xs text-muted-foreground">
-                                    #{pullRequest.number} opened by{" "}
-                                    {pullRequest.user?.login ?? "unknown"} ·{" "}
-                                    {pullRequest.comments} comments
-                                  </div>
+                            </div>
+                          </A>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                        No commits available for this branch.
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              }
+              issuesContent={
+                <Card className="rounded-2xl">
+                  <CardHeader className="border-b border-border px-5 py-4">
+                    <CardTitle className="flex items-center gap-3 text-base">
+                      <CircleDot className="size-4" />
+                      Issues
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {issues.length > 0 ? (
+                      <div className="divide-y divide-border">
+                        {issues.map((issue) => (
+                          <A
+                            key={issue.number}
+                            href={issue.html_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block px-5 py-4 transition hover:bg-accent/20"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="max-w-[70ch] truncate text-sm font-medium text-foreground">
+                                  {issue.title}
                                 </div>
-                                <Badge variant="outline">
-                                  {pullRequest.state}
-                                </Badge>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  #{issue.number} opened by{" "}
+                                  {issue.user?.login ?? "unknown"} ·{" "}
+                                  {issue.comments} comments
+                                </div>
                               </div>
-                            </A>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                          No open pull requests found.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ) : null}
-
-                {currentTab === "releases" ? (
-                  <Card className="rounded-2xl">
-                    <CardHeader className="border-b border-border px-5 py-4">
-                      <CardTitle className="flex items-center gap-3 text-base">
-                        <Tag className="size-4" />
-                        Releases
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      {releases.length > 0 ? (
-                        <div className="divide-y divide-border">
-                          {releases.map((release) => (
-                            <A
-                              key={release.tag_name}
-                              href={release.html_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block px-5 py-4 transition hover:bg-accent/20"
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <div className="truncate text-sm font-medium text-foreground">
-                                      {release.name || release.tag_name}
-                                    </div>
-                                    <Badge variant="outline">
-                                      {release.tag_name}
+                              <Badge variant="outline">{issue.state}</Badge>
+                            </div>
+                          </A>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                        No open issues found.
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              }
+              pullsContent={
+                <Card className="rounded-2xl">
+                  <CardHeader className="border-b border-border px-5 py-4">
+                    <CardTitle className="flex items-center gap-3 text-base">
+                      <GitPullRequest className="size-4" />
+                      Pull Requests
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {pullRequests.length > 0 ? (
+                      <div className="divide-y divide-border">
+                        {pullRequests.map((pullRequest) => (
+                          <A
+                            key={pullRequest.number}
+                            href={pullRequest.html_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block px-5 py-4 transition hover:bg-accent/20"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="max-w-[70ch] truncate text-sm font-medium text-foreground">
+                                  {pullRequest.title}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  #{pullRequest.number} opened by{" "}
+                                  {pullRequest.user?.login ?? "unknown"} ·{" "}
+                                  {pullRequest.comments} comments
+                                </div>
+                              </div>
+                              <Badge variant="outline">
+                                {pullRequest.state}
+                              </Badge>
+                            </div>
+                          </A>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                        No open pull requests found.
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              }
+              releasesContent={
+                <Card className="rounded-2xl">
+                  <CardHeader className="border-b border-border px-5 py-4">
+                    <CardTitle className="flex items-center gap-3 text-base">
+                      <Tag className="size-4" />
+                      Releases
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {releases.length > 0 ? (
+                      <div className="divide-y divide-border">
+                        {releases.map((release) => (
+                          <A
+                            key={release.tag_name}
+                            href={release.html_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block px-5 py-4 transition hover:bg-accent/20"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="truncate text-sm font-medium text-foreground">
+                                    {release.name || release.tag_name}
+                                  </div>
+                                  <Badge variant="outline">
+                                    {release.tag_name}
+                                  </Badge>
+                                  {release.prerelease ? (
+                                    <Badge variant="secondary">
+                                      Pre-release
                                     </Badge>
-                                    {release.prerelease ? (
-                                      <Badge variant="secondary">
-                                        Pre-release
-                                      </Badge>
-                                    ) : null}
-                                    {release.draft ? (
-                                      <Badge variant="secondary">Draft</Badge>
-                                    ) : null}
-                                  </div>
-                                  {release.body ? (
-                                    <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-                                      {release.body}
-                                    </p>
+                                  ) : null}
+                                  {release.draft ? (
+                                    <Badge variant="secondary">Draft</Badge>
                                   ) : null}
                                 </div>
-                                <div className="shrink-0 text-xs text-muted-foreground">
-                                  {release.published_at
-                                    ? formatRelativeDate(release.published_at)
-                                    : "Unpublished"}
-                                </div>
+                                {release.body ? (
+                                  <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                                    {release.body}
+                                  </p>
+                                ) : null}
                               </div>
-                            </A>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                          No releases published.
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ) : null}
-
-                {currentTab === "settings" ? (
-                  <RepositorySettingsForm
-                    branches={branches}
-                    repository={repository}
-                  />
-                ) : null}
-              </section>
-            </div>
+                              <div className="shrink-0 text-xs text-muted-foreground">
+                                {release.published_at
+                                  ? formatRelativeDate(release.published_at)
+                                  : "Unpublished"}
+                              </div>
+                            </div>
+                          </A>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                        No releases published.
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              }
+              settingsContent={
+                <RepositorySettingsForm
+                  branches={branches}
+                  repository={repository}
+                />
+              }
+            />
           </div>
         </main>
       </div>

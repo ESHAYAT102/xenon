@@ -15,20 +15,20 @@ type HomePageProps = {
 export default async function Page({ searchParams }: HomePageProps) {
   const params = await searchParams
   const user = await getSessionUser()
-  const unreadNotifications = await getGitHubNotifications(user, {
-    unreadOnly: true,
-  })
   const tab = params.tab ?? "trending"
 
-  const viewerRepos = user
-    ? await (await import("@/lib/github")).getGitHubViewerRepositories(user)
-    : []
-  const trending = await getTrendingRepositories(user)
+  const [unreadNotifications, viewerRepos, trending] = user
+    ? await Promise.all([
+        getGitHubNotifications(user, { unreadOnly: true }),
+        (await import("@/lib/github")).getGitHubViewerRepositories(user),
+        getTrendingRepositories(user),
+      ])
+    : [null, [], await getTrendingRepositories(user)]
 
   return (
     <BrowserContextMenu triggerClassName="block min-h-screen w-full">
       <div className="min-h-screen bg-background text-foreground">
-        <Navbar initialUnreadNotifications={unreadNotifications} />
+        <Navbar initialUnreadNotifications={unreadNotifications ?? []} />
         <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 pt-32 pb-10 md:px-8">
           <div className="space-y-6">
             <div className="mx-auto max-w-2xl space-y-4 text-center">

@@ -11,7 +11,7 @@ type AProps = React.ComponentProps<"a"> & {
   href: string
 }
 
-export default function A({ href, children, ...props }: AProps) {
+export default function A({ href, children, className, ...props }: AProps) {
   const isInternalHref = href.startsWith("/")
 
   const openInNewTab = () => {
@@ -42,11 +42,11 @@ export default function A({ href, children, ...props }: AProps) {
       }
     >
       {isInternalHref ? (
-        <Link href={href} {...props}>
+        <Link href={href} className={className} prefetch {...props}>
           {children}
         </Link>
       ) : (
-        <a href={href} {...props}>
+        <a href={href} className={className} {...props}>
           {children}
         </a>
       )}
