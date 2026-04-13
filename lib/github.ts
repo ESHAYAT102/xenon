@@ -253,10 +253,13 @@ type GitHubEvent = {
     issue?: {
       html_url: string
       title: string
+      state: string
     }
     pull_request?: {
       html_url: string
       title: string
+      state: string
+      merged: boolean
     }
     ref_type?: string
   }
@@ -278,6 +281,7 @@ export type ProfileActivityItem = {
   repoName: string
   title: string
   url: string
+  status?: "open" | "closed" | "merged"
 }
 
 function getHeaders(accessToken?: string) {
@@ -1629,6 +1633,8 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
               repoName: event.repo.name,
               title: `${event.payload.action ?? "updated"}: ${event.payload.issue.title}`,
               url: event.payload.issue.html_url,
+              status:
+                event.payload.issue.state === "closed" ? "closed" : "open",
             },
           ]
         : []
@@ -1642,6 +1648,11 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
               repoName: event.repo.name,
               title: `${event.payload.action ?? "updated"}: ${event.payload.pull_request.title}`,
               url: event.payload.pull_request.html_url,
+              status: event.payload.pull_request.merged
+                ? "merged"
+                : event.payload.pull_request.state === "closed"
+                  ? "closed"
+                  : "open",
             },
           ]
         : []

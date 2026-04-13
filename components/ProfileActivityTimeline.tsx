@@ -12,6 +12,7 @@ import {
   Star,
 } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import type { ProfileActivityItem } from "@/lib/github"
@@ -193,6 +194,27 @@ export default function ProfileActivityTimeline({
                                   <span className="truncate text-base">
                                     {item.title}
                                   </span>
+                                  {item.status === "open" && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      Open
+                                    </Badge>
+                                  )}
+                                  {item.status === "closed" && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs"
+                                    >
+                                      Closed
+                                    </Badge>
+                                  )}
+                                  {item.status === "merged" && (
+                                    <Badge className="bg-purple-500/20 text-xs text-purple-400">
+                                      Merged
+                                    </Badge>
+                                  )}
                                 </div>
                                 <p className="truncate text-sm text-muted-foreground">
                                   {item.repoName}
