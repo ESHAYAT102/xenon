@@ -1,7 +1,13 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { CircleDot, GitCommitHorizontal, GitPullRequest } from "lucide-react"
+import {
+  CircleDot,
+  FilePlus2,
+  GitCommitHorizontal,
+  GitPullRequest,
+  Star,
+} from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -22,6 +28,21 @@ function formatRelativeDate(value: string) {
   if (days < 30) return `${days}d ago`
   const months = Math.floor(days / 30)
   return `${months}mo ago`
+}
+
+function getCategoryIcon(category: ProfileActivityItem["category"]) {
+  switch (category) {
+    case "Commits":
+      return GitCommitHorizontal
+    case "Issues":
+      return CircleDot
+    case "Pull Requests":
+      return GitPullRequest
+    case "Repositories Created":
+      return FilePlus2
+    case "Stars":
+      return Star
+  }
 }
 
 export default function HomeActivity({ activity }: HomeActivityProps) {
@@ -100,55 +121,50 @@ export default function HomeActivity({ activity }: HomeActivityProps) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {filteredActivity.map((item) => (
-          <A
-            key={item.id}
-            href={item.url}
-            target="_blank"
-            rel="noreferrer"
-            className="block"
-          >
-            <Card className="transition hover:bg-accent/20">
-              <CardHeader className="flex-row items-center gap-3 space-y-0 pb-2">
-                <div className="flex items-center gap-2">
-                  {item.category === "Commits" && (
-                    <GitCommitHorizontal className="size-4 text-muted-foreground" />
+        {filteredActivity.map((item) => {
+          const Icon = getCategoryIcon(item.category)
+          return (
+            <A
+              key={item.id}
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="block"
+            >
+              <Card className="transition hover:bg-accent/20">
+                <CardHeader className="flex-row items-center gap-3 space-y-0 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Icon className="size-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {item.category}
+                    </span>
+                  </div>
+                  {item.status === "open" && (
+                    <Badge variant="outline" className="text-xs">
+                      Open
+                    </Badge>
                   )}
-                  {item.category === "Issues" && (
-                    <CircleDot className="size-4 text-muted-foreground" />
+                  {item.status === "closed" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Closed
+                    </Badge>
                   )}
-                  {item.category === "Pull Requests" && (
-                    <GitPullRequest className="size-4 text-muted-foreground" />
+                  {item.status === "merged" && (
+                    <Badge className="bg-purple-500/20 text-xs text-purple-400">
+                      Merged
+                    </Badge>
                   )}
-                  <span className="text-sm text-muted-foreground">
-                    {item.category}
-                  </span>
-                </div>
-                {item.status === "open" && (
-                  <Badge variant="outline" className="text-xs">
-                    Open
-                  </Badge>
-                )}
-                {item.status === "closed" && (
-                  <Badge variant="secondary" className="text-xs">
-                    Closed
-                  </Badge>
-                )}
-                {item.status === "merged" && (
-                  <Badge className="bg-purple-500/20 text-xs text-purple-400">
-                    Merged
-                  </Badge>
-                )}
-              </CardHeader>
-              <CardContent>
-                <p className="line-clamp-2 text-sm">{item.title}</p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {item.repoName} · {formatRelativeDate(item.createdAt)}
-                </p>
-              </CardContent>
-            </Card>
-          </A>
-        ))}
+                </CardHeader>
+                <CardContent>
+                  <p className="line-clamp-2 text-sm">{item.title}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {item.repoName} · {formatRelativeDate(item.createdAt)}
+                  </p>
+                </CardContent>
+              </Card>
+            </A>
+          )
+        })}
       </div>
     </div>
   )
