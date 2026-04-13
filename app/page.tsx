@@ -8,6 +8,7 @@ import {
 import { getSessionUser } from "@/lib/session"
 
 import HomeActivity from "@/components/HomeActivity"
+import TrendingRepositories from "@/components/TrendingRepositories"
 
 type HomePageProps = {
   searchParams: Promise<{ tab?: string }>
@@ -33,7 +34,7 @@ export default async function Page({ searchParams }: HomePageProps) {
           {user ? (
             <div className="space-y-6">
               <div className="space-y-2">
-                <h1 className="text-2xl font-semibold tracking-tight">
+                <h1 className="text-3xl font-semibold tracking-tight">
                   Your Activity
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -54,6 +55,10 @@ export default async function Page({ searchParams }: HomePageProps) {
               </div>
             </div>
           )}
+
+          <div className="space-y-6">
+            <TrendingRepositories repositories={trending} />
+          </div>
         </main>
       </div>
     </BrowserContextMenu>
