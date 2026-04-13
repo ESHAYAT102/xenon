@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { CircleDot, GitCommitHorizontal, GitPullRequest } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ProfileActivityItem } from "@/lib/github"
 import A from "./A"
@@ -56,50 +57,46 @@ export default function HomeActivity({ activity }: HomeActivityProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        <button
+        <Button
+          variant={activeTab === "all" ? "secondary" : "outline"}
+          size="sm"
+          className="rounded-full"
           onClick={() => setActiveTab("all")}
-          className={`rounded-full px-4 py-2 text-sm transition ${
-            activeTab === "all" ? "bg-secondary" : "bg-muted hover:bg-muted/80"
-          }`}
         >
           All
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={activeTab === "commits" ? "secondary" : "outline"}
+          size="sm"
+          className="gap-2 rounded-full"
           onClick={() => setActiveTab("commits")}
-          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${
-            activeTab === "commits"
-              ? "bg-secondary"
-              : "bg-muted hover:bg-muted/80"
-          }`}
         >
           <GitCommitHorizontal className="size-4" />
           Commits
           <span className="text-xs text-muted-foreground">
             {commits.length}
           </span>
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={activeTab === "issues" ? "secondary" : "outline"}
+          size="sm"
+          className="gap-2 rounded-full"
           onClick={() => setActiveTab("issues")}
-          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${
-            activeTab === "issues"
-              ? "bg-secondary"
-              : "bg-muted hover:bg-muted/80"
-          }`}
         >
           <CircleDot className="size-4" />
           Issues
           <span className="text-xs text-muted-foreground">{issues.length}</span>
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={activeTab === "prs" ? "secondary" : "outline"}
+          size="sm"
+          className="gap-2 rounded-full"
           onClick={() => setActiveTab("prs")}
-          className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${
-            activeTab === "prs" ? "bg-secondary" : "bg-muted hover:bg-muted/80"
-          }`}
         >
           <GitPullRequest className="size-4" />
           PRs
           <span className="text-xs text-muted-foreground">{prs.length}</span>
-        </button>
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
