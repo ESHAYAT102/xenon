@@ -126,9 +126,7 @@ export default function HomeActivity({ activity }: HomeActivityProps) {
           return (
             <A
               key={item.id}
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
+              href={item.internalUrl ?? item.url}
               className="block"
             >
               <Card className="transition hover:bg-accent/20">

@@ -254,12 +254,14 @@ type GitHubEvent = {
       html_url: string
       title: string
       state: string
+      number: number
     }
     pull_request?: {
       html_url: string
       title: string
       state: string
       merged: boolean
+      number: number
     }
     ref_type?: string
   }
@@ -282,6 +284,7 @@ export type ProfileActivityItem = {
   title: string
   url: string
   status?: "open" | "closed" | "merged"
+  internalUrl?: string
 }
 
 function getHeaders(accessToken?: string) {
@@ -1621,6 +1624,7 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
               ? event.payload.commits[0].message
               : "Pushed new commits",
           url: `https://github.com/${event.repo.name}/commits`,
+          internalUrl: `/${event.repo.name}`,
         },
       ]
     case "IssuesEvent":
@@ -1633,6 +1637,7 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
               repoName: event.repo.name,
               title: `${event.payload.action ?? "updated"}: ${event.payload.issue.title}`,
               url: event.payload.issue.html_url,
+              internalUrl: `/${event.repo.name}?tab=issues&issue=${event.payload.issue.number}`,
               status:
                 event.payload.issue.state === "closed" ? "closed" : "open",
             },
@@ -1648,6 +1653,7 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
               repoName: event.repo.name,
               title: `${event.payload.action ?? "updated"}: ${event.payload.pull_request.title}`,
               url: event.payload.pull_request.html_url,
+              internalUrl: `/${event.repo.name}?tab=pulls&pr=${event.payload.pull_request.number}`,
               status: event.payload.pull_request.merged
                 ? "merged"
                 : event.payload.pull_request.state === "closed"
@@ -1666,6 +1672,7 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
               repoName: event.repo.name,
               title: `Created ${event.repo.name.split("/")[1]}`,
               url: `https://github.com/${event.repo.name}`,
+              internalUrl: `/${event.repo.name}`,
             },
           ]
         : []
@@ -1678,6 +1685,7 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
           repoName: event.repo.name,
           title: `Starred ${event.repo.name}`,
           url: `https://github.com/${event.repo.name}`,
+          internalUrl: `/${event.repo.name}`,
         },
       ]
     default:

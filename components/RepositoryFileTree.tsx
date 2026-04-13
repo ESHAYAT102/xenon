@@ -43,6 +43,7 @@ import { ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import type { GitHubRepositoryContent } from "@/lib/github"
+import Loader from "./Loader"
 
 type RepositoryFileTreeProps = {
   branch?: string
@@ -361,9 +362,9 @@ function RepositoryFileTreeInner({
               {getRepositoryItemIcon(item)}
               <span className="truncate font-medium">{item.name}</span>
               {loadingPaths[item.path] && (
-                <span className="ml-auto text-xs text-muted-foreground">
-                  Loading...
-                </span>
+                <Loader
+                  className="ml-auto scale-70 text-muted-foreground"
+                />
               )}
             </button>
           ) : (

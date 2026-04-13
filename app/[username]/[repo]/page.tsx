@@ -61,6 +61,8 @@ type RepositoryPageProps = {
     commit?: string
     path?: string
     tab?: string
+    issue?: string
+    pr?: string
   }>
 }
 
@@ -132,7 +134,7 @@ export default async function RepositoryPage({
   searchParams,
 }: RepositoryPageProps) {
   const { username, repo } = await params
-  const { branch, commit, path, tab } = await searchParams
+  const { branch, commit, path, tab, issue, pr } = await searchParams
   const sessionUser = await getSessionUser()
   const commitRef = commit?.trim() || undefined
 
@@ -171,14 +173,17 @@ export default async function RepositoryPage({
   const canManageRepository =
     sessionUser?.login === repository.owner.login ||
     Boolean(repository.permissions?.admin || repository.permissions?.maintain)
-  const currentTab: RepositoryTab =
-    tab === "commits" ||
-    tab === "issues" ||
-    tab === "pulls" ||
-    tab === "releases" ||
-    (tab === "settings" && canManageRepository)
-      ? tab
-      : "code"
+  const currentTab: RepositoryTab = issue
+    ? "issues"
+    : pr
+      ? "pulls"
+      : tab === "commits" ||
+          tab === "issues" ||
+          tab === "pulls" ||
+          tab === "releases" ||
+          (tab === "settings" && canManageRepository)
+        ? tab
+        : "code"
   const [
     commits,
     issues,
