@@ -1,36 +1,30 @@
 "use client"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export default function OfflineMonitor() {
-  const router = useRouter()
+  const [isOnline, setIsOnline] = useState(true)
 
   useEffect(() => {
-    const handleOffline = () => {
-      if (!navigator.onLine) {
-        router.push("/offline")
-      }
-    }
+    const handleOffline = () => setIsOnline(false)
+    const handleOnline = () => setIsOnline(true)
 
-    const handleOnline = () => {
-      if (navigator.onLine && window.location.pathname === "/offline") {
-        router.push("/")
-      }
-    }
+    setIsOnline(navigator.onLine)
 
     window.addEventListener("offline", handleOffline)
     window.addEventListener("online", handleOnline)
-
-    if (!navigator.onLine) {
-      router.push("/offline")
-    }
 
     return () => {
       window.removeEventListener("offline", handleOffline)
       window.removeEventListener("online", handleOnline)
     }
-  }, [router])
+  }, [])
+
+  if (!isOnline) {
+    document.documentElement.classList.add("offline")
+  } else {
+    document.documentElement.classList.remove("offline")
+  }
 
   return null
 }

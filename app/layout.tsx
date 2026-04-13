@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import Script from "next/script"
 
 import AuthProvider from "@/components/AuthProvider"
-import OfflineMonitor from "@/components/OfflineMonitor"
 import "./globals.css"
 import { getSessionUser } from "@/lib/session"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -23,6 +22,7 @@ export const metadata: Metadata = {
   title: "Xenon",
   description:
     "Xenon is a GitHub client with repo browsing, profiles, command palette, and in-app actions.",
+  manifest: "/manifest.json",
 }
 
 export default async function RootLayout({
@@ -52,7 +52,6 @@ export default async function RootLayout({
         />
         <AuthProvider user={user}>
           <ThemeProvider>
-            <OfflineMonitor />
             {children}
             <Toaster richColors position="bottom-right" />
           </ThemeProvider>
