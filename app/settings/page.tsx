@@ -4,6 +4,7 @@ import type { Metadata } from "next"
 import BrowserContextMenu from "@/components/BrowserContextMenu"
 import Navbar from "@/components/Navbar"
 import SettingsForm from "@/components/SettingsForm"
+import { LoginForm } from "@/components/login-form"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Card,
@@ -31,16 +32,11 @@ export default async function SettingsPage() {
     return (
       <BrowserContextMenu triggerClassName="block min-h-screen w-full">
         <div className="min-h-screen bg-background text-foreground">
-          <Navbar initialUnreadNotifications={unreadNotifications} />
+          <Navbar initialUnreadNotifications={[]} />
           <main className="mx-auto max-w-5xl px-5 pt-24 pb-10">
-            <Card className="rounded-3xl">
-              <CardHeader>
-                <CardTitle>Settings unavailable</CardTitle>
-                <CardDescription>
-                  Sign in with GitHub to view and manage account settings.
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <div className="flex min-h-[60vh] items-center justify-center">
+              <LoginForm />
+            </div>
           </main>
         </div>
       </BrowserContextMenu>

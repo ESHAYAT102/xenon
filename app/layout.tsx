@@ -20,9 +20,9 @@ const fontSans = Geist({
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export const metadata: Metadata = {
-  title: "OpenHub",
+  title: "Xenon",
   description:
-    "OpenHub is a GitHub client with repo browsing, profiles, command palette, and in-app actions.",
+    "Xenon is a GitHub client with repo browsing, profiles, command palette, and in-app actions.",
 }
 
 export default async function RootLayout({

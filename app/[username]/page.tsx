@@ -11,6 +11,7 @@ import BrowserContextMenu from "@/components/BrowserContextMenu"
 import Navbar from "@/components/Navbar"
 import ProfileContentTabs from "@/components/ProfileContentTabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -115,7 +116,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       <BrowserContextMenu triggerClassName="block min-h-screen w-full">
         <div className="min-h-screen bg-background text-foreground">
           <Navbar initialUnreadNotifications={[]} />
-          <div className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-6 pt-24 pb-10">
+          <div className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6 pt-50 pb-10">
             <Empty className="w-full">
               <EmptyHeader>
                 <EmptyTitle className="text-2xl">Rate limit reached</EmptyTitle>
@@ -128,6 +129,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </EmptyHeader>
               <EmptyContent />
             </Empty>
+            {!sessionUser && (
+              <Button className="px-4" asChild>
+                <A href="/api/auth/github/login">Continue with GitHub</A>
+              </Button>
+            )}
           </div>
         </div>
       </BrowserContextMenu>

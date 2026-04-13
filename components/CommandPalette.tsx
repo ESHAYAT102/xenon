@@ -70,7 +70,7 @@ type SearchUserResult = {
   type: "User" | "Organization" | string
 }
 
-const RECENT_COMMANDS_KEY = "open-hub:recent-commands"
+const RECENT_COMMANDS_KEY = "xenon:recent-commands"
 const MAX_RECENTS = 12
 
 export default function CommandPalette({

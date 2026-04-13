@@ -19,8 +19,8 @@ type OAuthStatePayload = {
   state: string
 }
 
-export const SESSION_COOKIE_NAME = "openhub_session"
-export const OAUTH_STATE_COOKIE_NAME = "openhub_oauth_state"
+export const SESSION_COOKIE_NAME = "Xenon_session"
+export const OAUTH_STATE_COOKIE_NAME = "Xenon_oauth_state"
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30
 const OAUTH_STATE_MAX_AGE = 60 * 10
@@ -44,7 +44,9 @@ function decodeBase64Url(value: string) {
 }
 
 function sign(value: string) {
-  return createHmac("sha256", getSessionSecret()).update(value).digest("base64url")
+  return createHmac("sha256", getSessionSecret())
+    .update(value)
+    .digest("base64url")
 }
 
 function verify(value: string, signature: string) {
@@ -57,7 +59,9 @@ function verify(value: string, signature: string) {
 }
 
 export function encodeSessionCookie(user: SessionUser) {
-  const payload = encodeBase64Url(JSON.stringify({ user } satisfies SessionPayload))
+  const payload = encodeBase64Url(
+    JSON.stringify({ user } satisfies SessionPayload)
+  )
   const signature = sign(payload)
 
   return `${payload}.${signature}`

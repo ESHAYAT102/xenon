@@ -3,12 +3,7 @@ import type { Metadata } from "next"
 import BrowserContextMenu from "@/components/BrowserContextMenu"
 import Navbar from "@/components/Navbar"
 import NewRepositoryForm from "@/components/NewRepositoryForm"
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { LoginForm } from "@/components/login-form"
 import { getGitHubNotifications, getGitHubViewerSettings } from "@/lib/github"
 import { getSessionUser } from "@/lib/session"
 
@@ -27,17 +22,11 @@ export default async function NewRepositoryPage() {
     return (
       <BrowserContextMenu triggerClassName="block min-h-screen w-full">
         <div className="min-h-screen bg-background text-foreground">
-          <Navbar initialUnreadNotifications={unreadNotifications} />
+          <Navbar initialUnreadNotifications={[]} />
           <main className="mx-auto max-w-5xl px-5 pt-24 pb-10">
-            <Card className="rounded-3xl">
-              <CardHeader>
-                <CardTitle>Repository creation unavailable</CardTitle>
-                <CardDescription>
-                  Sign in with GitHub to create repositories from inside
-                  OpenHub.
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <div className="flex min-h-[60vh] items-center justify-center">
+              <LoginForm />
+            </div>
           </main>
         </div>
       </BrowserContextMenu>

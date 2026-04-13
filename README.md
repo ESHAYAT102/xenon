@@ -1,4 +1,4 @@
-OpenHub is a GitHub client focused on fast navigation, rich repo browsing, and keyboard-driven workflows.
+Xenon is a GitHub client focused on fast navigation, rich repo browsing, and keyboard-driven workflows.
 
 Features
 

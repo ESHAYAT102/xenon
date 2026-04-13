@@ -1,6 +1,6 @@
 {
-  "name": "open-hub",
-  "version": "0.0.1",
+  "name": "xenon",
+  "version": "0.1.0",
   "type": "module",
   "private": true,
   "scripts": {

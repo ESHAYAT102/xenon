@@ -9,6 +9,7 @@ import { getSessionUser } from "@/lib/session"
 
 import HomeActivity from "@/components/HomeActivity"
 import TrendingRepositories from "@/components/TrendingRepositories"
+import { LoginForm } from "@/components/login-form"
 
 type HomePageProps = {
   searchParams: Promise<{ tab?: string }>
@@ -32,33 +33,28 @@ export default async function Page({ searchParams }: HomePageProps) {
         <Navbar initialUnreadNotifications={unreadNotifications ?? []} />
         <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 pt-24 pb-10 md:px-8">
           {user ? (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-semibold tracking-tight">
-                  Your Activity
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Recent commits, issues, and pull requests
-                </p>
+            <>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-semibold tracking-tight">
+                    Your Activity
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Recent commits, issues, and pull requests
+                  </p>
+                </div>
+                <HomeActivity activity={activity} />
               </div>
-              <HomeActivity activity={activity} />
-            </div>
+
+              <div className="space-y-6">
+                <TrendingRepositories repositories={trending} />
+              </div>
+            </>
           ) : (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Explore
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Discover trending repositories
-                </p>
-              </div>
+            <div className="flex min-h-[60vh] items-center justify-center">
+              <LoginForm />
             </div>
           )}
-
-          <div className="space-y-6">
-            <TrendingRepositories repositories={trending} />
-          </div>
         </main>
       </div>
     </BrowserContextMenu>

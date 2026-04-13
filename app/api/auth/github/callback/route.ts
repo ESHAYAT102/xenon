@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
   const authHeaders = {
     Accept: "application/vnd.github+json",
     Authorization: `Bearer ${tokenData.access_token}`,
-    "User-Agent": "OpenHub",
+    "User-Agent": "Xenon",
   }
 
   const userResponse = await fetch("https://api.github.com/user", {

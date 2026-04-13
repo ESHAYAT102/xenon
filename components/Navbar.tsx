@@ -36,6 +36,7 @@ import {
 } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Image from "./Image"
 
 type NavbarProps = {
   initialUnreadNotifications?: GitHubNotification[]
@@ -82,7 +83,7 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
                   Open in new tab
                 </ContextMenuItem>
               </A>
-              <A href="/ESHAYAT102/OpenHub">
+              <A href="/ESHAYAT102/Xenon">
                 <ContextMenuItem>
                   <BookMarked />
                   Open repository
@@ -95,9 +96,10 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
             </>
           }
         >
-          <A href="/" className="flex items-center gap-2 font-bold">
-            <span>OpenHub</span>
-          </A>
+          <a href="/" className="flex items-center gap-2 font-bold">
+            <Image className="h-6" src="favicon.ico" alt="Logo"></Image>
+            <span>Xenon</span>
+          </a>
         </BrowserContextMenu>
       </div>
       <div className="flex items-center gap-2">
@@ -121,21 +123,25 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
           </Button>
         </BrowserContextMenu>
         <div className="hidden items-center gap-2 md:flex">
-          <Button
-            asChild
-            className="rounded-full"
-            variant="ghost"
-            title="Create new repository"
-          >
-            <A href={newRepositoryUrl}>
-              <Plus />
-            </A>
-          </Button>
-          <NotificationsDrawer
-            open={isNotificationsOpen}
-            onOpenChange={setIsNotificationsOpen}
-            initialNotifications={initialUnreadNotifications}
-          />
+          {user && (
+            <>
+              <Button
+                asChild
+                className="rounded-full"
+                variant="ghost"
+                title="Create new repository"
+              >
+                <A href={newRepositoryUrl}>
+                  <Plus />
+                </A>
+              </Button>
+              <NotificationsDrawer
+                open={isNotificationsOpen}
+                onOpenChange={setIsNotificationsOpen}
+                initialNotifications={initialUnreadNotifications}
+              />
+            </>
+          )}
         </div>
         {user ? (
           <DropdownMenu>
@@ -222,19 +228,23 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent className="mt-6 w-56 md:hidden" align="end">
             <DropdownMenuGroup>
-              <A href={newRepositoryUrl}>
-                <DropdownMenuItem className="hover:bg-accent-foreground/10">
-                  <Plus className="mr-2 size-4" />
-                  Create repository
-                </DropdownMenuItem>
-              </A>
-              <DropdownMenuItem
-                className="hover:bg-accent-foreground/10"
-                onClick={() => setIsNotificationsOpen(true)}
-              >
-                <Bell className="mr-2 size-4" />
-                Notifications
-              </DropdownMenuItem>
+              {user && (
+                <>
+                  <A href={newRepositoryUrl}>
+                    <DropdownMenuItem className="hover:bg-accent-foreground/10">
+                      <Plus className="mr-2 size-4" />
+                      Create repository
+                    </DropdownMenuItem>
+                  </A>
+                  <DropdownMenuItem
+                    className="hover:bg-accent-foreground/10"
+                    onClick={() => setIsNotificationsOpen(true)}
+                  >
+                    <Bell className="mr-2 size-4" />
+                    Notifications
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

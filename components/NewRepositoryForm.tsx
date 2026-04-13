@@ -102,7 +102,7 @@ export default function NewRepositoryForm({
         <CardHeader>
           <CardTitle>Create a new repository</CardTitle>
           <CardDescription>
-            Start a fresh GitHub repository without leaving OpenHub.
+            Start a fresh GitHub repository without leaving Xenon.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

@@ -25,6 +25,7 @@ import RepoKeyboardShortcuts from "@/components/RepoKeyboardShortcuts"
 import RepositorySettingsForm from "@/components/RepositorySettingsForm"
 import RepositoryTabs from "@/components/RepositoryTabs"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import {
@@ -48,6 +49,10 @@ import {
   getGitHubRepositoryPullRequestCount,
   getGitHubRepositoryReleases,
   isGitHubRepositoryStarred,
+  type GitHubRepositoryCommit,
+  type GitHubRepositoryIssue,
+  type GitHubRepositoryPullRequest,
+  type GitHubRepositoryRelease,
 } from "@/lib/github"
 import { getSessionUser } from "@/lib/session"
 
@@ -79,7 +84,7 @@ export async function generateMetadata({
 }: RepositoryPageProps): Promise<Metadata> {
   const { username, repo } = await params
   const sessionUser = await getSessionUser()
-  const repository = await getGitHubRepository(username, repo, sessionUser)
+  const { repository } = await getGitHubRepository(username, repo, sessionUser)
 
   if (!repository) {
     return { title: `${username}/${repo}` }
@@ -137,22 +142,27 @@ export default async function RepositoryPage({
   const { branch, commit, path, tab, issue, pr } = await searchParams
   const sessionUser = await getSessionUser()
   const commitRef = commit?.trim() || undefined
+  const isAuthenticated = Boolean(sessionUser?.accessToken)
 
-  const [[unreadNotifications, repositoryPageData], branches, isStarred] =
-    await Promise.all([
-      Promise.all([
-        getGitHubNotifications(sessionUser, { unreadOnly: true }),
-        getGitHubRepositoryPageData(
-          username,
-          repo,
-          sessionUser,
-          path,
-          commitRef ?? branch
-        ),
-      ]),
+  const [unreadNotifications, repositoryPageData, branches] = await Promise.all(
+    [
+      isAuthenticated
+        ? getGitHubNotifications(sessionUser, { unreadOnly: true })
+        : Promise.resolve([]),
+      getGitHubRepositoryPageData(
+        username,
+        repo,
+        sessionUser,
+        path,
+        commitRef ?? branch
+      ),
       getGitHubRepositoryBranches(username, repo, sessionUser),
-      isGitHubRepositoryStarred(sessionUser, username, repo),
-    ])
+    ]
+  )
+
+  const isStarred = isAuthenticated
+    ? await isGitHubRepositoryStarred(sessionUser, username, repo)
+    : false
 
   const data = repositoryPageData
 
@@ -168,41 +178,118 @@ export default async function RepositoryPage({
     rateLimited,
     rateLimitReset,
   } = data
+
+  if (rateLimited) {
+    const rateLimitTime = rateLimitReset
+      ? new Intl.DateTimeFormat("en", {
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(new Date(rateLimitReset))
+      : null
+
+    return (
+      <BrowserContextMenu triggerClassName="block min-h-screen w-full">
+        <div className="min-h-screen bg-background text-foreground">
+          <Navbar initialUnreadNotifications={[]} />
+          <div className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6 pt-24 pb-10">
+            <Empty className="w-full">
+              <EmptyHeader>
+                <EmptyTitle className="text-2xl">Rate limit reached</EmptyTitle>
+                <EmptyDescription>
+                  GitHub API rate limits were hit.{" "}
+                  {rateLimitTime
+                    ? `Try again after ${rateLimitTime}.`
+                    : "Try again in a few minutes."}
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent />
+            </Empty>
+            {!sessionUser && (
+              <Button asChild>
+                <A href="/api/auth/github/login">Login with GitHub</A>
+              </Button>
+            )}
+          </div>
+        </div>
+      </BrowserContextMenu>
+    )
+  }
+
+  if (!repository) {
+    notFound()
+  }
+
   const resolvedBranch = branch ?? repository.default_branch ?? "main"
   const isCommitRef = Boolean(commitRef)
   const canManageRepository =
     sessionUser?.login === repository.owner.login ||
     Boolean(repository.permissions?.admin || repository.permissions?.maintain)
-  const currentTab: RepositoryTab = issue
-    ? "issues"
-    : pr
-      ? "pulls"
-      : tab === "commits" ||
-          tab === "issues" ||
-          tab === "pulls" ||
-          tab === "releases" ||
-          (tab === "settings" && canManageRepository)
-        ? tab
-        : "code"
-  const [
-    commits,
-    issues,
-    pullRequests,
-    releases,
-    commitCount,
-    issueCount,
-    pullRequestCount,
-    repositoryLanguages,
-  ] = await Promise.all([
-    getGitHubRepositoryCommits(username, repo, sessionUser, resolvedBranch),
-    getGitHubRepositoryIssues(username, repo, sessionUser),
-    getGitHubRepositoryPullRequests(username, repo, sessionUser),
-    getGitHubRepositoryReleases(username, repo, sessionUser),
-    getGitHubRepositoryCommitCount(username, repo, sessionUser, resolvedBranch),
-    getGitHubRepositoryIssueCount(username, repo, sessionUser),
-    getGitHubRepositoryPullRequestCount(username, repo, sessionUser),
-    getGitHubRepositoryLanguages(username, repo, sessionUser),
-  ])
+  const currentTab: RepositoryTab = isAuthenticated
+    ? issue
+      ? "issues"
+      : pr
+        ? "pulls"
+        : tab === "commits" ||
+            tab === "issues" ||
+            tab === "pulls" ||
+            tab === "releases" ||
+            (tab === "settings" && canManageRepository)
+          ? tab
+          : "code"
+    : "code"
+
+  let commits: GitHubRepositoryCommit[] = []
+  let issues: GitHubRepositoryIssue[] = []
+  let pullRequests: GitHubRepositoryPullRequest[] = []
+  let releases: GitHubRepositoryRelease[] = []
+  let commitCount = 0
+  let issueCount = 0
+  let pullRequestCount = 0
+  let repositoryLanguages: Record<string, number> = {}
+
+  if (!isAuthenticated || currentTab === "code" || currentTab === "commits") {
+    const [commitsResult, countResult] = await Promise.all([
+      getGitHubRepositoryCommits(username, repo, sessionUser, resolvedBranch),
+      getGitHubRepositoryCommitCount(
+        username,
+        repo,
+        sessionUser,
+        resolvedBranch
+      ),
+    ])
+    commits = commitsResult
+    commitCount = countResult
+  }
+
+  if (!isAuthenticated || currentTab === "issues") {
+    const [issuesResult, countResult] = await Promise.all([
+      getGitHubRepositoryIssues(username, repo, sessionUser),
+      getGitHubRepositoryIssueCount(username, repo, sessionUser),
+    ])
+    issues = issuesResult
+    issueCount = countResult
+  }
+
+  if (!isAuthenticated || currentTab === "pulls") {
+    const [prsResult, countResult] = await Promise.all([
+      getGitHubRepositoryPullRequests(username, repo, sessionUser),
+      getGitHubRepositoryPullRequestCount(username, repo, sessionUser),
+    ])
+    pullRequests = prsResult
+    pullRequestCount = countResult
+  }
+
+  if (!isAuthenticated || currentTab === "releases") {
+    releases = await getGitHubRepositoryReleases(username, repo, sessionUser)
+  }
+
+  if (!isAuthenticated || currentTab === "code") {
+    repositoryLanguages = await getGitHubRepositoryLanguages(
+      username,
+      repo,
+      sessionUser
+    )
+  }
   const latestRelease = releases[0] ?? null
   const canEditRepository = canManageRepository && !isCommitRef
   const isOwnedEmptyRepository = canManageRepository && contents.length === 0

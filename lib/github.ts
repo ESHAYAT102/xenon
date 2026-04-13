@@ -291,7 +291,7 @@ function getHeaders(accessToken?: string) {
   return {
     Accept: "application/vnd.github+json",
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    "User-Agent": "OpenHub",
+    "User-Agent": "Xenon",
   }
 }
 
@@ -310,12 +310,17 @@ type CacheEntry<T> = {
 }
 
 const CACHE_TTL = 30_000
+const PROFILE_CACHE_TTL = 60_000
+const REPO_CACHE_TTL = 60_000
+
 const contentsCache = new Map<string, CacheEntry<GitHubRepositoryContent[]>>()
 const readmeCache = new Map<string, CacheEntry<GitHubRepositoryReadme | null>>()
 const selectedItemCache = new Map<
   string,
   CacheEntry<GitHubRepositoryContent | null>
 >()
+const profileCache = new Map<string, CacheEntry<GitHubProfile>>()
+const repositoryCache = new Map<string, CacheEntry<GitHubRepository>>()
 
 function readCache<T>(cache: Map<string, CacheEntry<T>>, key: string) {
   const entry = cache.get(key)
@@ -340,9 +345,38 @@ function readCacheEntry<T>(cache: Map<string, CacheEntry<T>>, key: string) {
 function writeCache<T>(
   cache: Map<string, CacheEntry<T>>,
   key: string,
-  value: T
+  value: T,
+  ttl: number = CACHE_TTL
 ) {
-  cache.set(key, { expires: Date.now() + CACHE_TTL, value })
+  cache.set(key, { expires: Date.now() + ttl, value })
+}
+
+function getCachedProfile(username: string): GitHubProfile | null {
+  return readCache(profileCache, `profile:${username}`)
+}
+
+function setCachedProfile(username: string, profile: GitHubProfile) {
+  writeCache(profileCache, `profile:${username}`, profile, PROFILE_CACHE_TTL)
+}
+
+function getCachedRepository(
+  owner: string,
+  repo: string
+): GitHubRepository | null {
+  return readCache(repositoryCache, `repo:${owner}/${repo}`)
+}
+
+function setCachedRepository(
+  owner: string,
+  repo: string,
+  repository: GitHubRepository
+) {
+  writeCache(
+    repositoryCache,
+    `repo:${owner}/${repo}`,
+    repository,
+    REPO_CACHE_TTL
+  )
 }
 
 async function fetchJsonWithStatus<T>(url: string, accessToken?: string) {
@@ -888,6 +922,28 @@ export async function getGitHubProfilePageData(
     sessionUser?.login.toLowerCase() === username.toLowerCase()
   const accessToken = sessionUser?.accessToken
 
+  const cachedProfile = !accessToken ? getCachedProfile(username) : null
+  if (cachedProfile && !isOwnProfile) {
+    const repositoriesEndpoint =
+      cachedProfile.type === "Organization"
+        ? `https://api.github.com/orgs/${username}/repos?sort=updated&per_page=100&type=public`
+        : `https://api.github.com/users/${username}/repos?sort=updated&per_page=100`
+
+    const repositories =
+      (await fetchJson<GitHubRepository[]>(
+        repositoriesEndpoint,
+        accessToken
+      )) ?? []
+
+    return {
+      isOwnProfile,
+      profile: cachedProfile,
+      rateLimited: false,
+      rateLimitReset: null,
+      repositories: await resolveRepositoryLanguages(repositories, accessToken),
+    }
+  }
+
   const ownProfileResponse = isOwnProfile
     ? await fetchJsonWithStatus<GitHubProfile>(
         "https://api.github.com/user",
@@ -944,6 +1000,15 @@ export async function getGitHubProfilePageData(
     ].filter((status): status is number => typeof status === "number")
 
     if (statuses.length > 0 && statuses.every((status) => status === 404)) {
+      if (rateLimited) {
+        return {
+          isOwnProfile,
+          profile: buildPlaceholderProfile(username),
+          rateLimited: true,
+          rateLimitReset,
+          repositories: [],
+        }
+      }
       notFound()
     }
 
@@ -962,6 +1027,10 @@ export async function getGitHubProfilePageData(
     (await fetchJson<GitHubRepository[]>(repositoriesEndpoint, accessToken)) ??
     []
 
+  if (profile && !accessToken) {
+    setCachedProfile(username, profile)
+  }
+
   return {
     isOwnProfile,
     profile,
@@ -978,16 +1047,30 @@ export async function getGitHubRepository(
 ) {
   const accessToken = sessionUser?.accessToken
 
-  const { data, status } = await fetchJsonWithStatus<GitHubRepository>(
-    `https://api.github.com/repos/${owner}/${repo}`,
-    accessToken
-  )
-
-  if (!data && status === 404) {
-    return null
+  const cachedRepo = !accessToken ? getCachedRepository(owner, repo) : null
+  if (cachedRepo) {
+    return { repository: cachedRepo, rateLimited: false, rateLimitReset: null }
   }
 
-  return data
+  const { data, status, rateLimited, rateLimitReset } =
+    await fetchJsonWithStatus<GitHubRepository>(
+      `https://api.github.com/repos/${owner}/${repo}`,
+      accessToken
+    )
+
+  if (!data && status === 404) {
+    return { repository: null, rateLimited: false, rateLimitReset: null }
+  }
+
+  if (!data && rateLimited) {
+    return { repository: null, rateLimited: true, rateLimitReset }
+  }
+
+  if (data && !accessToken) {
+    setCachedRepository(owner, repo, data)
+  }
+
+  return { repository: data, rateLimited: false, rateLimitReset: null }
 }
 
 export async function getGitHubRepositoryLanguages(
@@ -1047,9 +1130,23 @@ export async function getGitHubRepositoryPageData(
   branch?: string
 ) {
   const accessToken = sessionUser?.accessToken
-  const repository = await getGitHubRepository(owner, repo, sessionUser)
+  const {
+    repository,
+    rateLimited: repoRateLimited,
+    rateLimitReset: repoRateLimitReset,
+  } = await getGitHubRepository(owner, repo, sessionUser)
 
   if (!repository) {
+    if (repoRateLimited) {
+      return {
+        contents: [],
+        readme: null,
+        repository: null,
+        selectedItem: null,
+        rateLimited: true,
+        rateLimitReset: repoRateLimitReset,
+      }
+    }
     return null
   }
 
