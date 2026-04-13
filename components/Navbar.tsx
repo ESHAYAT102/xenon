@@ -97,7 +97,7 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
           }
         >
           <a href="/" className="flex items-center gap-2 font-bold">
-            <Image className="h-6" src="./favicon.ico" alt="Logo"></Image>
+            <Image className="h-6" src="/favicon.ico" alt="Logo"></Image>
             <span>Xenon</span>
           </a>
         </BrowserContextMenu>
