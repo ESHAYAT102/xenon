@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import Script from "next/script"
 
 import AuthProvider from "@/components/AuthProvider"
-import OfflineMonitor from "@/components/OfflineMonitor"
 import "./globals.css"
 import { getSessionUser } from "@/lib/session"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -52,7 +51,6 @@ export default async function RootLayout({
         />
         <AuthProvider user={user}>
           <ThemeProvider>
-            <OfflineMonitor />
             {children}
             <Toaster richColors position="bottom-right" />
           </ThemeProvider>
