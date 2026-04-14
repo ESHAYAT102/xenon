@@ -25,12 +25,15 @@ export default function RepositoryActions({
   fullName,
   htmlUrl,
 }: RepositoryActionsProps) {
-  const [protocol, setProtocol] = useState<"https" | "ssh">("https")
+  const [protocol, setProtocol] = useState<"https" | "ssh" | "gh">("https")
   const [copied, setCopied] = useState(false)
 
   const cloneUrl = useMemo(() => {
     if (protocol === "ssh") {
       return `git@github.com:${fullName}.git`
+    }
+    if (protocol === "gh") {
+      return `gh repo clone ${fullName}`
     }
 
     return `${htmlUrl}.git`
@@ -98,7 +101,7 @@ export default function RepositoryActions({
           className="w-[min(92vw,26rem)] rounded-2xl border border-border/70 bg-card p-4 shadow-2xl"
         >
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-2 rounded-xl border border-border/70 bg-background/40 p-1">
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-border/70 bg-background/40 p-1">
               <button
                 type="button"
                 onClick={() => setProtocol("https")}
@@ -122,6 +125,18 @@ export default function RepositoryActions({
                 )}
               >
                 SSH
+              </button>
+              <button
+                type="button"
+                onClick={() => setProtocol("gh")}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-sm font-medium transition",
+                  protocol === "gh"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                CLI
               </button>
             </div>
 
