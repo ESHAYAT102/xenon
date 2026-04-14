@@ -56,6 +56,7 @@ type CommandEntry = {
 
 type SearchRepositoryResult = {
   id: number
+  name: string
   fullName: string
   description: string | null
   stars: number
@@ -90,6 +91,7 @@ export default function CommandPalette({
     repositories: SearchRepositoryResult[]
     users: SearchUserResult[]
   }>({ repositories: [], users: [] })
+  const [userRepos, setUserRepos] = useState<SearchRepositoryResult[]>([])
 
   const items = useMemo<CommandItem[]>(() => {
     const baseItems: CommandItem[] = [
@@ -150,6 +152,22 @@ export default function CommandPalette({
       setRecentCommands([])
     }
   }, [])
+
+  useEffect(() => {
+    if (!user?.login) return
+
+    const controller = new AbortController()
+    fetch(`/api/user/repos?per_page=30`, { signal: controller.signal })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.repositories) {
+          setUserRepos(data.repositories)
+        }
+      })
+      .catch(() => {})
+
+    return () => controller.abort()
+  }, [user?.login])
 
   const markCommandUsed = (id: string) => {
     setRecentCommands((current) => {
@@ -875,6 +893,47 @@ export default function CommandPalette({
               </Command.Item>
             ) : (
               <>
+                {user?.login && userRepos.length > 0 && (
+                  <Command.Group>
+                    {userRepos
+                      .filter(
+                        (repo) =>
+                          repo.fullName
+                            .toLowerCase()
+                            .includes(parsed?.argument?.toLowerCase() ?? "") ||
+                          repo.name
+                            .toLowerCase()
+                            .includes(parsed?.argument?.toLowerCase() ?? "")
+                      )
+                      .slice(0, 5)
+                      .map((repo) => (
+                        <Command.Item
+                          key={`user-repo-${repo.id}`}
+                          value={repo.fullName}
+                          onSelect={() => {
+                            markCommandUsed("search")
+                            onOpenChange(false)
+                            router.push(`/${repo.fullName}`)
+                          }}
+                          className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-accent/30 aria-selected:bg-accent/50"
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <BookMarked className="size-4 shrink-0 text-muted-foreground" />
+                            <div className="flex min-w-0 flex-col">
+                              <span>{repo.fullName}</span>
+                              {repo.description ? (
+                                <span className="text-xs text-muted-foreground">
+                                  <span className="block max-w-full truncate">
+                                    {repo.description}
+                                  </span>
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </Command.Item>
+                      ))}
+                  </Command.Group>
+                )}
                 {searchResults.repositories.map((repo) => (
                   <Command.Item
                     key={`repo-${repo.id}`}

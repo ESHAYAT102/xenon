@@ -65,7 +65,7 @@ export async function GET(request: Request) {
 
   const repoParams = new URLSearchParams({
     q: `${query} in:name,owner`,
-    per_page: "5",
+    per_page: "15",
     sort: "stars",
     order: "desc",
   })
@@ -86,29 +86,43 @@ export async function GET(request: Request) {
     ),
   ])
 
+  const repositories =
+    repoResult?.items.map((repo) => ({
+      archived: repo.archived,
+      created_at: repo.created_at,
+      id: repo.id,
+      name: repo.name,
+      forks_count: repo.forks_count,
+      owner: {
+        avatar_url: repo.owner.avatar_url,
+        login: repo.owner.login,
+      },
+      private: repo.private,
+      fullName: repo.full_name,
+      description: repo.description,
+      stars: repo.stargazers_count,
+      language: repo.language,
+      url: repo.html_url,
+      updated_at: repo.updated_at,
+      api_url: repo.url,
+      fork: repo.fork,
+      languages_url: repo.languages_url,
+    })) ?? []
+
+  let sortedRepositories = repositories
+
+  if (sessionUser?.login) {
+    const userRepos = repositories.filter(
+      (repo) => repo.owner.login === sessionUser.login
+    )
+    const otherRepos = repositories.filter(
+      (repo) => repo.owner.login !== sessionUser.login
+    )
+    sortedRepositories = [...userRepos, ...otherRepos]
+  }
+
   return NextResponse.json({
-    repositories:
-      repoResult?.items.map((repo) => ({
-        archived: repo.archived,
-        created_at: repo.created_at,
-        id: repo.id,
-        forks_count: repo.forks_count,
-        name: repo.name,
-        owner: {
-          avatar_url: repo.owner.avatar_url,
-          login: repo.owner.login,
-        },
-        private: repo.private,
-        fullName: repo.full_name,
-        description: repo.description,
-        stars: repo.stargazers_count,
-        language: repo.language,
-        url: repo.html_url,
-        updated_at: repo.updated_at,
-        api_url: repo.url,
-        fork: repo.fork,
-        languages_url: repo.languages_url,
-      })) ?? [],
+    repositories: sortedRepositories,
     users:
       userResult?.items.map((user) => ({
         login: user.login,
