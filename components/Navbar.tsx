@@ -146,7 +146,11 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden rounded-full md:flex"
+              >
                 <Avatar size="sm">
                   <AvatarImage
                     src={user.image ?? undefined}
@@ -211,43 +215,14 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button asChild variant="outline" className="rounded-full px-4">
+          <Button
+            asChild
+            variant="outline"
+            className="hidden rounded-full px-4 md:inline-flex"
+          >
             <A href={authUrl}>Sign in</A>
           </Button>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full md:hidden"
-              title="More actions"
-            >
-              <Ellipsis />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="mt-6 w-56 md:hidden" align="end">
-            <DropdownMenuGroup>
-              {user && (
-                <>
-                  <A href={newRepositoryUrl}>
-                    <DropdownMenuItem className="hover:bg-accent-foreground/10">
-                      <Plus className="mr-2 size-4" />
-                      Create repository
-                    </DropdownMenuItem>
-                  </A>
-                  <DropdownMenuItem
-                    className="hover:bg-accent-foreground/10"
-                    onClick={() => setIsNotificationsOpen(true)}
-                  >
-                    <Bell className="mr-2 size-4" />
-                    Notifications
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </nav>
   )
