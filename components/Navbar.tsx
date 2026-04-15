@@ -66,15 +66,15 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
   const authUrl = "/api/auth/github/login?callbackUrl=/"
 
   return (
-    <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-primary-foreground/50 px-8 py-4 backdrop-blur-md">
+    <nav className="fixed inset-x-0 top-0 z-50 flex items-center justify-between border-b border-foreground/10 bg-primary-foreground/50 px-4 py-4 backdrop-blur-md md:px-8">
       <CommandPalette
         open={isCommandOpen}
         onOpenChange={setIsCommandOpen}
         onOpenNotificationsChange={setIsNotificationsOpen}
       />
-      <div className="flex items-center">
+      <div className="flex min-w-0 items-center">
         <BrowserContextMenu
-          triggerClassName="flex items-center justify-center"
+          triggerClassName="flex min-w-0 items-center justify-center"
           menuChildren={
             <>
               <A href="/" target="_blank">
@@ -96,13 +96,13 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
             </>
           }
         >
-          <a href="/" className="flex items-center gap-2 font-bold">
+          <a href="/" className="flex min-w-0 items-center gap-2 font-bold shrink-0">
             <Image className="h-6" src="/favicon.ico" alt="Logo"></Image>
-            <span>Xenon</span>
+            <span className="hidden min-[400px]:inline truncate">Xenon</span>
           </a>
         </BrowserContextMenu>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <BrowserContextMenu
           triggerClassName="inline-flex"
           menuChildren={
