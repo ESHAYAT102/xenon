@@ -59,7 +59,7 @@ export default function RepositoryTabs({
 
   const tabLinkClass = (isActive: boolean) =>
     [
-      "inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm transition",
+      "inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm transition shrink-0",
       isActive
         ? "border-foreground text-foreground"
         : "border-transparent text-muted-foreground hover:text-foreground",
@@ -77,7 +77,7 @@ export default function RepositoryTabs({
   return (
     <>
       <div className="border-b border-border">
-        <div className="flex flex-wrap items-center gap-5">
+        <div className="flex items-center gap-5 overflow-x-auto whitespace-nowrap">
           <button
             onClick={() => handleTabClick("code")}
             className={tabLinkClass(activeTab === "code")}
