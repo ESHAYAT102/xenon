@@ -77,7 +77,7 @@ export default function RepositoryTabs({
   return (
     <>
       <div className="border-b border-border">
-        <div className="flex items-center gap-5 overflow-x-auto whitespace-nowrap">
+        <div className="flex w-full items-center gap-5 overflow-x-auto whitespace-nowrap px-4 md:px-8 -mx-4 md:-mx-8">
           <button
             onClick={() => handleTabClick("code")}
             className={tabLinkClass(activeTab === "code")}

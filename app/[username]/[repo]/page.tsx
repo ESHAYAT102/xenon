@@ -191,7 +191,7 @@ export default async function RepositoryPage({
       <BrowserContextMenu triggerClassName="block min-h-screen w-full">
         <div className="min-h-screen bg-background text-foreground">
           <Navbar initialUnreadNotifications={[]} />
-          <div className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6 pt-24 pb-10">
+          <div className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-4 pt-24 pb-10 md:px-8">
             <Empty className="w-full">
               <EmptyHeader>
                 <EmptyTitle className="text-2xl">Rate limit reached</EmptyTitle>
@@ -312,12 +312,12 @@ export default async function RepositoryPage({
       <div className="min-h-screen bg-background text-foreground">
         <Navbar initialUnreadNotifications={unreadNotifications} />
         <RepoKeyboardShortcuts enabled />
-        <main className="mx-auto max-w-7xl px-6 pt-24 pb-10">
+        <main className="mx-auto w-full max-w-7xl px-4 pt-24 pb-10 md:px-8">
           <div className="space-y-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="flex flex-wrap items-center text-3xl font-semibold tracking-tight">
+                  <h1 className="flex flex-wrap items-center text-2xl font-semibold tracking-tight md:text-3xl">
                     <BrowserContextMenu
                       triggerClassName="inline-flex"
                       menuChildren={

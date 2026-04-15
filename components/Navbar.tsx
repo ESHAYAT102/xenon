@@ -66,7 +66,7 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
   const authUrl = "/api/auth/github/login?callbackUrl=/"
 
   return (
-    <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-primary-foreground/50 px-8 py-4 backdrop-blur-md">
+    <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-primary-foreground/50 px-4 py-4 md:px-8 backdrop-blur-md">
       <CommandPalette
         open={isCommandOpen}
         onOpenChange={setIsCommandOpen}

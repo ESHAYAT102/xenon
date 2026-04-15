@@ -116,7 +116,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       <BrowserContextMenu triggerClassName="block min-h-screen w-full">
         <div className="min-h-screen bg-background text-foreground">
           <Navbar initialUnreadNotifications={[]} />
-          <div className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6 pt-50 pb-10">
+          <div className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-4 pt-50 pb-10 md:px-8">
             <Empty className="w-full">
               <EmptyHeader>
                 <EmptyTitle className="text-2xl">Rate limit reached</EmptyTitle>
@@ -178,7 +178,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     <BrowserContextMenu triggerClassName="block min-h-screen w-full">
       <div className="min-h-screen bg-background text-foreground">
         <Navbar initialUnreadNotifications={unreadNotifications} />
-        <main className="mx-auto grid max-w-395 gap-5 px-5 pt-24 pb-8 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-6">
+        <main className="mx-auto grid w-full max-w-7xl gap-5 px-4 pt-24 pb-8 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8">
           <aside className="space-y-5">
             <div className="space-y-4">
               <Avatar
