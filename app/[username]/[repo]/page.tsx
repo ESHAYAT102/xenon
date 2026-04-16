@@ -357,7 +357,7 @@ export default async function RepositoryPage({
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <h1 className="flex min-w-0 flex-wrap items-center text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">
+                  <h1 className="flex min-w-0 flex-wrap items-center break-words text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">
                     <BrowserContextMenu
                       triggerClassName="inline-flex"
                       menuChildren={
@@ -457,24 +457,24 @@ export default async function RepositoryPage({
                 <RepositoryBranchSelector
                   branches={branches}
                   commitRef={commitRef}
-                    currentBranch={resolvedBranch}
-                    owner={username}
-                    repo={repo}
-                    selectedPath={path}
-                  />
-                  <RepositoryEngagementActions
-                    canFork={sessionUser?.login !== repository.owner.login}
-                    initialForkCount={repository.forks_count}
-                    initialIsStarred={isStarred}
-                    initialStarCount={repository.stargazers_count}
-                    owner={username}
-                    repo={repo}
-                  />
-                  <RepositoryActions
-                    branch={contentRef}
-                    fullName={
-                      repository.full_name ??
-                      `${repository.owner.login}/${repository.name}`
+                  currentBranch={resolvedBranch}
+                  owner={username}
+                  repo={repo}
+                  selectedPath={path}
+                />
+                <RepositoryEngagementActions
+                  canFork={sessionUser?.login !== repository.owner.login}
+                  initialForkCount={repository.forks_count}
+                  initialIsStarred={isStarred}
+                  initialStarCount={repository.stargazers_count}
+                  owner={username}
+                  repo={repo}
+                />
+                <RepositoryActions
+                  branch={contentRef}
+                  fullName={
+                    repository.full_name ??
+                    `${repository.owner.login}/${repository.name}`
                   }
                   htmlUrl={repository.html_url}
                 />

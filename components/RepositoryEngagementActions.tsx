@@ -92,11 +92,11 @@ export default function RepositoryEngagementActions({
   }
 
   return (
-    <>
+    <div className="grid w-full grid-cols-1 gap-2 min-[440px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap">
       <Button
         type="button"
         variant={isStarred ? "secondary" : "outline"}
-        className="rounded-xl"
+        className="w-full rounded-xl sm:w-auto"
         onClick={handleStarToggle}
         data-repo-action-star
       >
@@ -109,7 +109,7 @@ export default function RepositoryEngagementActions({
         <Button
           type="button"
           variant="outline"
-          className="rounded-xl"
+          className="w-full rounded-xl sm:w-auto"
           disabled={isForking}
           onClick={handleFork}
           data-repo-action-fork
@@ -119,6 +119,6 @@ export default function RepositoryEngagementActions({
           <span className="text-muted-foreground">{forkCount}</span>
         </Button>
       ) : null}
-    </>
+    </div>
   )
 }

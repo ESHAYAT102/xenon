@@ -49,9 +49,12 @@ export default function RepositoryBranchSelector({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="rounded-xl">
+        <Button
+          variant="outline"
+          className="w-full justify-center rounded-xl sm:w-auto"
+        >
           <GitBranch />
-          {currentBranch}
+          <span className="truncate">{currentBranch}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

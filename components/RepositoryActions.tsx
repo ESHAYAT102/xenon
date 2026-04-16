@@ -68,7 +68,7 @@ export default function RepositoryActions({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
       <button
         type="button"
         className="sr-only"
@@ -89,7 +89,7 @@ export default function RepositoryActions({
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="rounded-xl"
+            className="w-full rounded-xl sm:w-auto"
             data-repo-action-clone
           >
             <Copy />
@@ -182,7 +182,11 @@ export default function RepositoryActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Button asChild variant="outline" className="rounded-xl">
+      <Button
+        asChild
+        variant="outline"
+        className="w-full rounded-xl sm:w-auto"
+      >
         <A href={zipUrl}>
           <Download />
           ZIP

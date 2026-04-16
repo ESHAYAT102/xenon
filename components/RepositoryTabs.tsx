@@ -7,7 +7,6 @@ import {
   Code,
   GitCommitHorizontal,
   GitPullRequest,
-  Settings,
   Tag,
 } from "lucide-react"
 
@@ -59,7 +58,7 @@ export default function RepositoryTabs({
 
   const tabLinkClass = (isActive: boolean) =>
     [
-      "inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm transition shrink-0",
+      "inline-flex shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm transition",
       isActive
         ? "border-foreground text-foreground"
         : "border-transparent text-muted-foreground hover:text-foreground",
@@ -77,7 +76,7 @@ export default function RepositoryTabs({
   return (
     <>
       <div className="border-b border-border">
-        <div className="-mx-4 flex w-full items-center gap-5 overflow-x-auto px-4 whitespace-nowrap md:-mx-8 md:px-8">
+        <div className="-mx-4 flex w-full items-center gap-3 overflow-x-auto px-4 whitespace-nowrap [scrollbar-width:none] md:-mx-8 md:gap-5 md:px-8">
           <button
             onClick={() => handleTabClick("code")}
             className={tabLinkClass(activeTab === "code")}
@@ -140,7 +139,7 @@ export default function RepositoryTabs({
         </div>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-4 sm:gap-6">
         <section className="space-y-6">
           <div className={activeTab === "code" ? "block" : "hidden"}>
             {codeContent}

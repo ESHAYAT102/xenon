@@ -449,9 +449,9 @@ function RepositoryFilePreviewContent({
             <span className="truncate">{target.path}</span>
           </CardTitle>
 
-          <div className="flex w-full flex-wrap items-center justify-between gap-2 md:w-auto md:justify-end">
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
             {showsPreviewToggle ? (
-              <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted/20 p-1">
+              <div className="inline-flex min-w-0 items-center gap-1 rounded-lg border border-border bg-muted/20 p-1">
                 <ToggleButton
                   active={activeMode === "preview"}
                   onClick={() => setPreviewMode("preview")}
@@ -507,75 +507,77 @@ function RepositoryFilePreviewContent({
               </Button>
             ) : null}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              className="rounded-xl"
-              onClick={handleCopy}
-              title="Copy file"
-              aria-label="Copy file"
-            >
-              <Copy />
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              className="rounded-xl"
-              onClick={handleDownload}
-              title="Download file"
-              aria-label="Download file"
-            >
-              <Download />
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  className="rounded-xl"
-                  title="More actions"
-                  aria-label="More actions"
-                >
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onClick={handleCopyFilePath}>
-                  <Copy />
-                  Copy file path
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopyAppUrl}>
-                  <SquareArrowOutUpRight />
-                  Copy file URL
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={!canEdit}
-                >
-                  <X />
-                  Delete file
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {target.htmlUrl ? (
-              <A
-                href={target.htmlUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex size-8 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                aria-label="Open file on GitHub"
-                title="Open file on GitHub"
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                className="rounded-xl"
+                onClick={handleCopy}
+                title="Copy file"
+                aria-label="Copy file"
               >
-                <SquareArrowOutUpRight className="size-4" />
-              </A>
-            ) : null}
+                <Copy />
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                className="rounded-xl"
+                onClick={handleDownload}
+                title="Download file"
+                aria-label="Download file"
+              >
+                <Download />
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    className="rounded-xl"
+                    title="More actions"
+                    aria-label="More actions"
+                  >
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={handleCopyFilePath}>
+                    <Copy />
+                    Copy file path
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyAppUrl}>
+                    <SquareArrowOutUpRight />
+                    Copy file URL
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={!canEdit}
+                  >
+                    <X />
+                    Delete file
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {target.htmlUrl ? (
+                <A
+                  href={target.htmlUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex size-8 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  aria-label="Open file on GitHub"
+                  title="Open file on GitHub"
+                >
+                  <SquareArrowOutUpRight className="size-4" />
+                </A>
+              ) : null}
+            </div>
           </div>
         </div>
       </CardHeader>
