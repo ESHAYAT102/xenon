@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import {
+  ChevronRight,
   CircleDot,
   Eye,
   EyeOff,
@@ -132,6 +133,45 @@ function buildRepositoryLanguageDistribution(
       language,
       percentage: total > 0 ? Math.round((bytes / total) * 100) : 0,
     }))
+}
+
+function RepositoryLanguageCard({
+  languageDistribution,
+}: {
+  languageDistribution: ReturnType<typeof buildRepositoryLanguageDistribution>
+}) {
+  if (languageDistribution.length === 0) {
+    return null
+  }
+
+  return (
+    <Card className="rounded-2xl">
+      <CardContent className="space-y-3 px-4 py-4 sm:px-5">
+        <div className="text-[11px] tracking-[0.25em] text-muted-foreground uppercase">
+          Languages
+        </div>
+        <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
+          {languageDistribution.map((language) => (
+            <div
+              key={language.language}
+              className={language.colorClass}
+              style={{ width: `${language.percentage}%` }}
+            />
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-2 text-[11px] text-muted-foreground">
+          {languageDistribution.map((language) => (
+            <div key={language.language} className="flex items-center gap-2">
+              <span className={`size-2 rounded-full ${language.colorClass}`} />
+              <span>
+                {language.language} {language.percentage}%
+              </span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
 export default async function RepositoryPage({
@@ -312,12 +352,12 @@ export default async function RepositoryPage({
       <div className="min-h-screen bg-background text-foreground">
         <Navbar initialUnreadNotifications={unreadNotifications} />
         <RepoKeyboardShortcuts enabled />
-        <main className="mx-auto w-full max-w-7xl px-4 pt-24 pb-10 md:px-8">
-          <div className="space-y-6">
+        <main className="mx-auto w-full max-w-7xl px-4 pt-22 pb-8 sm:pt-24 sm:pb-10 md:px-8">
+          <div className="space-y-5 sm:space-y-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="flex flex-wrap items-center text-2xl font-semibold tracking-tight md:text-3xl">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <h1 className="flex min-w-0 flex-wrap items-center text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">
                     <BrowserContextMenu
                       triggerClassName="inline-flex"
                       menuChildren={
@@ -383,11 +423,11 @@ export default async function RepositoryPage({
                   ) : null}
                 </div>
                 {repository.description ? (
-                  <p className="max-w-xl text-sm text-muted-foreground">
+                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                     {repository.description}
                   </p>
                 ) : null}
-                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
                   {repository.homepage ? (
                     <A
                       href={repository.homepage}
@@ -399,8 +439,6 @@ export default async function RepositoryPage({
                       {repository.homepage.replace(/^https?:\/\//, "")}
                     </A>
                   ) : null}
-                </div>
-                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <span>
                     Updated {formatRelativeDate(repository.updated_at)}
                   </span>
@@ -415,28 +453,28 @@ export default async function RepositoryPage({
                 ) : null}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <RepositoryBranchSelector
                   branches={branches}
                   commitRef={commitRef}
-                  currentBranch={resolvedBranch}
-                  owner={username}
-                  repo={repo}
-                  selectedPath={path}
-                />
-                <RepositoryEngagementActions
-                  canFork={sessionUser?.login !== repository.owner.login}
-                  initialForkCount={repository.forks_count}
-                  initialIsStarred={isStarred}
-                  initialStarCount={repository.stargazers_count}
-                  owner={username}
-                  repo={repo}
-                />
-                <RepositoryActions
-                  branch={contentRef}
-                  fullName={
-                    repository.full_name ??
-                    `${repository.owner.login}/${repository.name}`
+                    currentBranch={resolvedBranch}
+                    owner={username}
+                    repo={repo}
+                    selectedPath={path}
+                  />
+                  <RepositoryEngagementActions
+                    canFork={sessionUser?.login !== repository.owner.login}
+                    initialForkCount={repository.forks_count}
+                    initialIsStarred={isStarred}
+                    initialStarCount={repository.stargazers_count}
+                    owner={username}
+                    repo={repo}
+                  />
+                  <RepositoryActions
+                    branch={contentRef}
+                    fullName={
+                      repository.full_name ??
+                      `${repository.owner.login}/${repository.name}`
                   }
                   htmlUrl={repository.html_url}
                 />
@@ -478,62 +516,8 @@ export default async function RepositoryPage({
                     remoteUrl={repository.html_url}
                   />
                 ) : (
-                  <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-                    <div className="space-y-4">
-                      <Card className="self-start rounded-2xl">
-                        <CardContent className="p-0">
-                          {contents.length > 0 ? (
-                            <RepositoryFileTree
-                              branch={contentRef}
-                              initialContents={contents}
-                              owner={username}
-                              repo={repo}
-                              selectedPath={path}
-                            />
-                          ) : (
-                            <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                              No repository contents available.
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      {languageDistribution.length > 0 ? (
-                        <Card className="rounded-2xl">
-                          <CardContent className="space-y-3 px-5 py-4">
-                            <div className="text-[11px] tracking-[0.25em] text-muted-foreground uppercase">
-                              Languages
-                            </div>
-                            <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
-                              {languageDistribution.map((language) => (
-                                <div
-                                  key={language.language}
-                                  className={language.colorClass}
-                                  style={{ width: `${language.percentage}%` }}
-                                />
-                              ))}
-                            </div>
-                            <div className="flex flex-wrap gap-x-3 gap-y-2 text-[11px] text-muted-foreground">
-                              {languageDistribution.map((language) => (
-                                <div
-                                  key={language.language}
-                                  className="flex items-center gap-2"
-                                >
-                                  <span
-                                    className={`size-2 rounded-full ${language.colorClass}`}
-                                  />
-                                  <span>
-                                    {language.language} {language.percentage}%
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ) : null}
-                    </div>
-
-                    <div className="space-y-6">
+                  <div className="space-y-4 lg:space-y-0">
+                    <div className="space-y-4 lg:hidden">
                       <RepositoryFilePreview
                         branch={contentRef}
                         canEdit={canEditRepository}
@@ -542,6 +526,74 @@ export default async function RepositoryPage({
                         repo={repo}
                         selectedItem={selectedItem}
                       />
+
+                      {contents.length > 0 ? (
+                        <details
+                          className="group overflow-hidden rounded-2xl border bg-card shadow-sm"
+                          open={!selectedItem && !readme}
+                        >
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium">
+                            <span>Browse files</span>
+                            <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                              {selectedItem?.name ?? `${contents.length} items`}
+                              <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
+                            </span>
+                          </summary>
+                          <div className="border-t border-border/70">
+                            <RepositoryFileTree
+                              branch={contentRef}
+                              initialContents={contents}
+                              owner={username}
+                              repo={repo}
+                              selectedPath={path}
+                            />
+                          </div>
+                          {languageDistribution.length > 0 ? (
+                            <div className="border-t border-border/70 p-3">
+                              <RepositoryLanguageCard
+                                languageDistribution={languageDistribution}
+                              />
+                            </div>
+                          ) : null}
+                        </details>
+                      ) : null}
+                    </div>
+
+                    <div className="hidden gap-6 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+                      <div className="space-y-4">
+                        <Card className="self-start rounded-2xl">
+                          <CardContent className="p-0">
+                            {contents.length > 0 ? (
+                              <RepositoryFileTree
+                                branch={contentRef}
+                                initialContents={contents}
+                                owner={username}
+                                repo={repo}
+                                selectedPath={path}
+                              />
+                            ) : (
+                              <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                                No repository contents available.
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        <RepositoryLanguageCard
+                          languageDistribution={languageDistribution}
+                        />
+                      </div>
+
+                      <div className="space-y-6">
+                        <RepositoryFilePreview
+                          branch={contentRef}
+                          canEdit={canEditRepository}
+                          owner={username}
+                          readme={readme}
+                          repo={repo}
+                          selectedItem={selectedItem}
+                        />
+                      </div>
                     </div>
                   </div>
                 )

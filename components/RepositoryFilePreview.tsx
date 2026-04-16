@@ -293,7 +293,10 @@ function RepositoryFilePreviewContent({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") {
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        event.key.toLowerCase() !== "s"
+      ) {
         return
       }
 
@@ -436,17 +439,17 @@ function RepositoryFilePreviewContent({
 
   return (
     <Card className="rounded-2xl">
-      <CardHeader className="border-b border-border px-5 py-3">
+      <CardHeader className="border-b border-border px-3 py-3 sm:px-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <CardTitle className="flex items-center gap-3 text-base">
+          <CardTitle className="flex min-w-0 items-center gap-3 text-sm sm:text-base">
             {getRepositoryItemIcon({
               name: target.name,
               type: "file",
             })}
-            {target.path}
+            <span className="truncate">{target.path}</span>
           </CardTitle>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center justify-between gap-2 md:w-auto md:justify-end">
             {showsPreviewToggle ? (
               <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted/20 p-1">
                 <ToggleButton
@@ -577,7 +580,7 @@ function RepositoryFilePreviewContent({
         </div>
       </CardHeader>
 
-      <CardContent className="px-5 py-5">
+      <CardContent className="px-3 py-3 sm:px-5 sm:py-5">
         {target.isImage && target.downloadUrl ? (
           <Image
             alt={target.name}
@@ -603,7 +606,7 @@ function RepositoryFilePreviewContent({
             }}
           />
         ) : isEditing ? (
-          <div className="h-[60vh] overflow-hidden rounded-xl border border-border bg-[#151515]">
+          <div className="h-[52vh] overflow-hidden rounded-xl border border-border bg-[#151515] sm:h-[60vh]">
             <div className="flex h-full">
               <div
                 aria-hidden="true"
@@ -629,7 +632,7 @@ function RepositoryFilePreviewContent({
             </div>
           </div>
         ) : (
-          <div className="relative min-h-[60vh] overflow-hidden rounded-xl border border-border bg-[#151515]">
+          <div className="relative min-h-[52vh] overflow-hidden rounded-xl border border-border bg-[#151515] sm:min-h-[60vh]">
             <div
               aria-hidden="true"
               className="absolute inset-0 overflow-auto select-text"

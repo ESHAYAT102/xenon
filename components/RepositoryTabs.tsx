@@ -77,7 +77,7 @@ export default function RepositoryTabs({
   return (
     <>
       <div className="border-b border-border">
-        <div className="flex w-full items-center gap-5 overflow-x-auto whitespace-nowrap px-4 md:px-8 -mx-4 md:-mx-8">
+        <div className="-mx-4 flex w-full items-center gap-5 overflow-x-auto px-4 whitespace-nowrap md:-mx-8 md:px-8">
           <button
             onClick={() => handleTabClick("code")}
             className={tabLinkClass(activeTab === "code")}
@@ -134,7 +134,6 @@ export default function RepositoryTabs({
               className={tabLinkClass(activeTab === "settings")}
               data-repo-tab-settings
             >
-              <Settings className="size-4" />
               Settings
             </button>
           )}
