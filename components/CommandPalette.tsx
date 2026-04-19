@@ -21,8 +21,8 @@ import {
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/AuthProvider"
-import { useTheme } from "next-themes"
 import { Kbd, KbdGroup } from "@/components/ui/kbd"
+import { useThemeTransition } from "@/hooks/use-theme-transition"
 import { usePrefetchRoutes } from "@/hooks/usePrefetchRoutes"
 
 type CommandPaletteProps = {
@@ -81,7 +81,7 @@ export default function CommandPalette({
 }: CommandPaletteProps) {
   const router = useRouter()
   const { user } = useAuth()
-  const { resolvedTheme, setTheme } = useTheme()
+  const { resolvedTheme, toggleTheme } = useThemeTransition()
   const [value, setValue] = useState("")
   const [recentCommands, setRecentCommands] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -246,8 +246,7 @@ export default function CommandPalette({
           ),
         onSelect: () => {
           markCommandUsed("change-theme")
-          const nextTheme = resolvedTheme === "dark" ? "light" : "dark"
-          setTheme(nextTheme)
+          const nextTheme = toggleTheme()
           toast.success(
             nextTheme === "dark" ? "Dark theme enabled" : "Light theme enabled"
           )
@@ -314,7 +313,7 @@ export default function CommandPalette({
       },
       signItem,
     ]
-  }, [onOpenChange, resolvedTheme, setTheme, user])
+  }, [onOpenChange, resolvedTheme, toggleTheme, user])
 
   const orderedEntries = useMemo(() => {
     const seen = new Set<string>()
@@ -605,15 +604,14 @@ export default function CommandPalette({
       window.open(githubUrl, "_blank", "noopener,noreferrer")
     })
     map.set("theme", () => {
-      const nextTheme = resolvedTheme === "dark" ? "light" : "dark"
-      setTheme(nextTheme)
+      const nextTheme = toggleTheme()
       toast.success(
         nextTheme === "dark" ? "Dark theme enabled" : "Light theme enabled"
       )
     })
 
     return map
-  }, [onOpenNotificationsChange, resolvedTheme, router, setTheme, user?.login])
+  }, [onOpenNotificationsChange, router, toggleTheme, user?.login])
 
   const executeSlashCommand = async (command: string, argument: string) => {
     if (command === "home") {
@@ -693,8 +691,7 @@ export default function CommandPalette({
     }
 
     if (["theme", "toggle-theme"].includes(command)) {
-      const nextTheme = resolvedTheme === "dark" ? "light" : "dark"
-      setTheme(nextTheme)
+      const nextTheme = toggleTheme()
       toast.success(
         nextTheme === "dark" ? "Dark theme enabled" : "Light theme enabled"
       )

@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 
 import A from "@/components/A"
 import { useAuth } from "@/components/AuthProvider"
@@ -18,15 +19,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ContextMenuItem } from "@/components/ui/context-menu"
-import { useTheme } from "next-themes"
+import { useThemeTransition } from "@/hooks/use-theme-transition"
 import type { GitHubNotification } from "@/lib/github"
 import {
   Settings,
   LogOutIcon,
   User,
-  Bell,
   Copy,
-  Ellipsis,
   Moon,
   Plus,
   Search,
@@ -44,7 +43,7 @@ type NavbarProps = {
 
 export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
   const { user } = useAuth()
-  const { resolvedTheme, setTheme } = useTheme()
+  const { resolvedTheme, toggleTheme } = useThemeTransition()
   const [isCommandOpen, setIsCommandOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const profileUrl = useMemo(
@@ -66,7 +65,7 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
   const authUrl = "/api/auth/github/login?callbackUrl=/"
 
   return (
-    <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-primary-foreground/50 px-4 py-4 md:px-8 backdrop-blur-md">
+    <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-primary-foreground/50 px-4 py-4 backdrop-blur-md md:px-8">
       <CommandPalette
         open={isCommandOpen}
         onOpenChange={setIsCommandOpen}
@@ -96,10 +95,10 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
             </>
           }
         >
-          <a href="/" className="flex items-center gap-2 font-bold">
+          <Link href="/" className="flex items-center gap-2 font-bold">
             <Image className="h-6" src="/favicon.ico" alt="Logo"></Image>
             <span>Xenon</span>
-          </a>
+          </Link>
         </BrowserContextMenu>
       </div>
       <div className="flex items-center gap-2">
@@ -186,9 +185,7 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
               </DropdownMenuGroup>
               <DropdownMenuItem
                 className="hover:bg-accent-foreground/10"
-                onClick={() => {
-                  setTheme(isDarkTheme ? "light" : "dark")
-                }}
+                onClick={toggleTheme}
               >
                 {isDarkTheme ? (
                   <>
