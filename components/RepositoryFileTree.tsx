@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Bun,
   Docker,
@@ -257,6 +257,61 @@ function RepositoryFileTreeInner({
 
   const rootItems = useMemo(() => initialContents, [initialContents])
 
+  const loadDirectoryContents = useCallback(
+    async (path: string, showLoading = true) => {
+      if (childrenByPath[path]) {
+        return childrenByPath[path]
+      }
+
+      if (inflightRequestsRef.current[path]) {
+        return inflightRequestsRef.current[path]
+      }
+
+      if (showLoading) {
+        setLoadingPaths((current) => ({ ...current, [path]: true }))
+      }
+
+      const query = new URLSearchParams({
+        ...(branch ? { branch } : {}),
+        owner,
+        path,
+        repo,
+      })
+
+      const request = fetch(`/api/repository-contents?${query.toString()}`, {
+        cache: "no-store",
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            return []
+          }
+
+          const data = (await response.json()) as {
+            contents: GitHubRepositoryContent[]
+          }
+
+          setChildrenByPath((current) => ({
+            ...current,
+            [path]: data.contents,
+          }))
+
+          return data.contents
+        })
+        .finally(() => {
+          delete inflightRequestsRef.current[path]
+
+          if (showLoading) {
+            setLoadingPaths((current) => ({ ...current, [path]: false }))
+          }
+        })
+
+      inflightRequestsRef.current[path] = request
+
+      return request
+    },
+    [branch, childrenByPath, owner, repo]
+  )
+
   useEffect(() => {
     if (prefetchedRef.current || initialContents.length === 0) return
     prefetchedRef.current = true
@@ -270,59 +325,7 @@ function RepositoryFileTreeInner({
     Promise.all(
       directories.map((path) => loadDirectoryContents(path, false))
     ).catch(() => {})
-  }, [initialContents])
-
-  const loadDirectoryContents = async (path: string, showLoading = true) => {
-    if (childrenByPath[path]) {
-      return childrenByPath[path]
-    }
-
-    if (inflightRequestsRef.current[path]) {
-      return inflightRequestsRef.current[path]
-    }
-
-    if (showLoading) {
-      setLoadingPaths((current) => ({ ...current, [path]: true }))
-    }
-
-    const query = new URLSearchParams({
-      ...(branch ? { branch } : {}),
-      owner,
-      path,
-      repo,
-    })
-
-    const request = fetch(`/api/repository-contents?${query.toString()}`, {
-      cache: "no-store",
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          return []
-        }
-
-        const data = (await response.json()) as {
-          contents: GitHubRepositoryContent[]
-        }
-
-        setChildrenByPath((current) => ({
-          ...current,
-          [path]: data.contents,
-        }))
-
-        return data.contents
-      })
-      .finally(() => {
-        delete inflightRequestsRef.current[path]
-
-        if (showLoading) {
-          setLoadingPaths((current) => ({ ...current, [path]: false }))
-        }
-      })
-
-    inflightRequestsRef.current[path] = request
-
-    return request
-  }
+  }, [initialContents, loadDirectoryContents])
 
   const toggleDirectory = async (path: string) => {
     if (expandedPaths[path]) {
@@ -362,9 +365,7 @@ function RepositoryFileTreeInner({
               {getRepositoryItemIcon(item)}
               <span className="truncate font-medium">{item.name}</span>
               {loadingPaths[item.path] && (
-                <Loader
-                  className="ml-auto scale-70 text-muted-foreground"
-                />
+                <Loader className="ml-auto scale-70 text-muted-foreground" />
               )}
             </button>
           ) : (

@@ -16,7 +16,7 @@ type HomePageProps = {
 }
 
 export default async function Page({ searchParams }: HomePageProps) {
-  const params = await searchParams
+  await searchParams
   const user = await getSessionUser()
 
   const [unreadNotifications, trending, activity] = user

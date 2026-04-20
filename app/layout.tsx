@@ -19,9 +19,29 @@ const fontSans = Geist({
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+      process.env.NEXTAUTH_URL ??
+      "http://localhost:3000"
+  ),
   title: "Xenon",
   description:
     "Xenon is a GitHub client with repo browsing, profiles, command palette, and in-app actions.",
+  alternates: {
+    types: {
+      "text/plain": "/llms.txt",
+      "text/markdown": "/llms-full.txt",
+      "application/vnd.oai.openapi+json": "/openapi.json",
+    },
+  },
+  robots: {
+    follow: true,
+    googleBot: {
+      follow: true,
+      index: true,
+    },
+    index: true,
+  },
 }
 
 export default async function RootLayout({
