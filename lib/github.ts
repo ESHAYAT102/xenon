@@ -141,7 +141,19 @@ export type GitHubRepositoryPageData = {
   contents: GitHubRepositoryContent[]
   rateLimited?: boolean
   rateLimitReset?: number | null
-  selectedItem: GitHubRepositoryFilePreview | null
+  selectedItem: {
+    downloadUrl: string | null
+    htmlUrl: string | null
+    isImage: boolean
+    isMarkdown: boolean
+    isText: boolean
+    isVideo: boolean
+    name: string
+    path: string
+    sha: string
+    text: string
+    type: "file"
+  } | null
   readme: {
     htmlUrl: string
     markdown: string
@@ -150,20 +162,6 @@ export type GitHubRepositoryPageData = {
     sha: string
   } | null
   repository: GitHubRepository
-}
-
-export type GitHubRepositoryFilePreview = {
-  downloadUrl: string | null
-  htmlUrl: string | null
-  isImage: boolean
-  isMarkdown: boolean
-  isText: boolean
-  isVideo: boolean
-  name: string
-  path: string
-  sha: string
-  text: string
-  type: "file"
 }
 
 export type GitHubRepositoryCommit = {
@@ -175,31 +173,6 @@ export type GitHubRepositoryCommit = {
     message: string
   }
   html_url: string
-  sha: string
-}
-
-export type GitHubRepositoryTreeItem = {
-  mode: string
-  path: string
-  sha: string
-  size?: number
-  type: "blob" | "tree" | "commit"
-  url: string
-}
-
-export type GitHubRepositoryCommitDiffFile = {
-  additions: number
-  changes: number
-  deletions: number
-  filename: string
-  patch: string | null
-  previousFilename: string | null
-  status: string
-}
-
-export type GitHubRepositoryCommitDiff = {
-  files: GitHubRepositoryCommitDiffFile[]
-  patch: string
   sha: string
 }
 
@@ -341,15 +314,6 @@ const PROFILE_CACHE_TTL = 60_000
 const REPO_CACHE_TTL = 60_000
 
 const contentsCache = new Map<string, CacheEntry<GitHubRepositoryContent[]>>()
-const repositoryTreeCache = new Map<
-  string,
-  CacheEntry<GitHubRepositoryTreeItem[]>
->()
-const filePreviewCache = new Map<
-  string,
-  CacheEntry<Record<string, GitHubRepositoryFilePreview>>
->()
-const commitDiffCache = new Map<string, CacheEntry<GitHubRepositoryCommitDiff>>()
 const readmeCache = new Map<string, CacheEntry<GitHubRepositoryReadme | null>>()
 const selectedItemCache = new Map<
   string,
@@ -1124,193 +1088,6 @@ export async function getGitHubRepositoryLanguages(
   )
 }
 
-export async function getGitHubRepositoryTree(
-  owner: string,
-  repo: string,
-  sessionUser: SessionUser | null,
-  ref?: string
-) {
-  const accessToken = sessionUser?.accessToken
-  const cacheKey = `${sessionUser?.login ?? "anon"}:${owner}/${repo}:${ref ?? "default"}:tree`
-  const cached = readCache(repositoryTreeCache, cacheKey)
-  if (cached) {
-    return cached
-  }
-
-  const tree = await fetchJson<{
-    tree?: GitHubRepositoryTreeItem[]
-    truncated?: boolean
-  }>(
-    `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(ref ?? "HEAD")}?recursive=1`,
-    accessToken
-  )
-
-  const items = (tree?.tree ?? [])
-    .filter((item) => item.type === "blob" || item.type === "tree")
-    .sort((a, b) => {
-      if (a.type === b.type) {
-        return a.path.localeCompare(b.path)
-      }
-
-      if (a.type === "tree") return -1
-      if (b.type === "tree") return 1
-      return a.path.localeCompare(b.path)
-    })
-
-  writeCache(repositoryTreeCache, cacheKey, items, REPO_CACHE_TTL)
-
-  return items
-}
-
-const MAX_PRELOADED_FILE_BYTES = 1_000_000
-const PRELOADED_FILE_CONCURRENCY = 8
-
-type GitHubBlob = {
-  content?: string
-  encoding?: "base64" | "utf-8"
-  sha: string
-  size: number
-}
-
-function getNameFromPath(path: string) {
-  return path.split("/").pop() ?? path
-}
-
-function encodePathSegments(path: string) {
-  return path.split("/").map(encodeURIComponent).join("/")
-}
-
-function getRepositoryFileHtmlUrl(
-  owner: string,
-  repo: string,
-  ref: string,
-  path: string
-) {
-  return `https://github.com/${owner}/${repo}/blob/${encodeURIComponent(ref)}/${encodePathSegments(path)}`
-}
-
-function getRepositoryRawFileUrl(
-  owner: string,
-  repo: string,
-  ref: string,
-  path: string
-) {
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(ref)}/${encodePathSegments(path)}`
-}
-
-async function mapWithConcurrency<TInput, TOutput>(
-  items: TInput[],
-  concurrency: number,
-  mapper: (item: TInput) => Promise<TOutput>
-) {
-  const results: TOutput[] = []
-  let index = 0
-
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-      while (index < items.length) {
-        const currentIndex = index
-        index += 1
-        results[currentIndex] = await mapper(items[currentIndex])
-      }
-    })
-  )
-
-  return results
-}
-
-export async function getGitHubRepositoryPreloadedFilePreviews(
-  owner: string,
-  repo: string,
-  sessionUser: SessionUser | null,
-  ref: string,
-  treeItems: GitHubRepositoryTreeItem[]
-) {
-  const accessToken = sessionUser?.accessToken
-  const cacheKey = `${sessionUser?.login ?? "anon"}:${owner}/${repo}:${ref}:file-previews`
-  const cached = readCache(filePreviewCache, cacheKey)
-  if (cached) {
-    return cached
-  }
-
-  const fileItems = treeItems.filter((item) => item.type === "blob")
-  const previewEntries: Array<[string, GitHubRepositoryFilePreview]> = []
-  const textItems = fileItems.filter((item) => {
-    const name = getNameFromPath(item.path)
-    return (
-      !isImagePath(name) &&
-      !isVideoPath(name) &&
-      (item.size ?? 0) <= MAX_PRELOADED_FILE_BYTES
-    )
-  })
-
-  for (const item of fileItems) {
-    const name = getNameFromPath(item.path)
-    const isImage = isImagePath(name)
-    const isVideo = isVideoPath(name)
-
-    if (!isImage && !isVideo) continue
-
-    previewEntries.push([
-      item.path,
-      {
-        downloadUrl: getRepositoryRawFileUrl(owner, repo, ref, item.path),
-        htmlUrl: getRepositoryFileHtmlUrl(owner, repo, ref, item.path),
-        isImage,
-        isMarkdown: false,
-        isText: false,
-        isVideo,
-        name,
-        path: item.path,
-        sha: item.sha,
-        text: "",
-        type: "file",
-      },
-    ])
-  }
-
-  const textPreviews = await mapWithConcurrency(
-    textItems,
-    PRELOADED_FILE_CONCURRENCY,
-    async (item) => {
-      const name = getNameFromPath(item.path)
-      const blob = await fetchJson<GitHubBlob>(item.url, accessToken)
-      const text =
-        blob?.content && blob.encoding === "base64"
-          ? decodeBase64Content(blob.content)
-          : blob?.content && blob.encoding === "utf-8"
-            ? blob.content
-            : ""
-
-      return [
-        item.path,
-        {
-          downloadUrl: getRepositoryRawFileUrl(owner, repo, ref, item.path),
-          htmlUrl: getRepositoryFileHtmlUrl(owner, repo, ref, item.path),
-          isImage: false,
-          isMarkdown: name.toLowerCase().endsWith(".md"),
-          isText: true,
-          isVideo: false,
-          name,
-          path: item.path,
-          sha: blob?.sha ?? item.sha,
-          text,
-          type: "file",
-        },
-      ] satisfies [string, GitHubRepositoryFilePreview]
-    }
-  )
-
-  const previews = Object.fromEntries([
-    ...previewEntries,
-    ...textPreviews,
-  ]) as Record<string, GitHubRepositoryFilePreview>
-
-  writeCache(filePreviewCache, cacheKey, previews, REPO_CACHE_TTL)
-
-  return previews
-}
-
 function decodeBase64Content(value: string) {
   return Buffer.from(value.replace(/\n/g, ""), "base64").toString("utf8")
 }
@@ -1710,82 +1487,6 @@ export async function getGitHubRepositoryCommits(
       accessToken
     )) ?? []
   )
-}
-
-function buildCommitPatch(files: GitHubRepositoryCommitDiffFile[]) {
-  return files
-    .filter((file) => file.patch)
-    .map((file) => {
-      const previousPath = file.previousFilename ?? file.filename
-      const oldPath =
-        file.status === "added" ? "/dev/null" : `a/${previousPath}`
-      const newPath =
-        file.status === "removed" ? "/dev/null" : `b/${file.filename}`
-
-      return [
-        `diff --git a/${previousPath} b/${file.filename}`,
-        file.status === "renamed"
-          ? `rename from ${previousPath}\nrename to ${file.filename}`
-          : null,
-        `--- ${oldPath}`,
-        `+++ ${newPath}`,
-        file.patch,
-      ]
-        .filter(Boolean)
-        .join("\n")
-    })
-    .join("\n")
-}
-
-export async function getGitHubRepositoryCommitDiff(
-  owner: string,
-  repo: string,
-  sessionUser: SessionUser | null,
-  sha: string
-) {
-  const accessToken = sessionUser?.accessToken
-  const cacheKey = `${sessionUser?.login ?? "anon"}:${owner}/${repo}:commit:${sha}`
-  const cached = readCache(commitDiffCache, cacheKey)
-  if (cached) {
-    return cached
-  }
-
-  const commit = await fetchJson<{
-    files?: Array<{
-      additions?: number
-      changes?: number
-      deletions?: number
-      filename: string
-      patch?: string
-      previous_filename?: string
-      status: string
-    }>
-    sha: string
-  }>(
-    `https://api.github.com/repos/${owner}/${repo}/commits/${encodeURIComponent(sha)}`,
-    accessToken
-  )
-
-  const files =
-    commit?.files?.map((file) => ({
-      additions: file.additions ?? 0,
-      changes: file.changes ?? 0,
-      deletions: file.deletions ?? 0,
-      filename: file.filename,
-      patch: file.patch ?? null,
-      previousFilename: file.previous_filename ?? null,
-      status: file.status,
-    })) ?? []
-
-  const diff = {
-    files,
-    patch: buildCommitPatch(files),
-    sha: commit?.sha ?? sha,
-  } satisfies GitHubRepositoryCommitDiff
-
-  writeCache(commitDiffCache, cacheKey, diff, REPO_CACHE_TTL)
-
-  return diff
 }
 
 export async function getGitHubRepositoryCommitCount(
