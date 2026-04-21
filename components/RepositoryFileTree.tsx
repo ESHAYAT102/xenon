@@ -1,7 +1,14 @@
 "use client"
 
-import Link from "next/link"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { FileTree, useFileTree } from "@pierre/trees/react"
+import { usePathname, useRouter } from "next/navigation"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type MouseEvent,
+} from "react"
 import {
   Bun,
   Docker,
@@ -39,18 +46,43 @@ import {
   FolderSrc,
   FolderUtils,
 } from "@react-symbols/icons/folders"
-import { ChevronRight } from "lucide-react"
 
-import { cn } from "@/lib/utils"
-import type { GitHubRepositoryContent } from "@/lib/github"
-import Loader from "./Loader"
+import type {
+  GitHubRepositoryContent,
+  GitHubRepositoryTreeItem,
+} from "@/lib/github"
 
 type RepositoryFileTreeProps = {
   branch?: string
+  commit?: string
   initialContents: GitHubRepositoryContent[]
+  onFileSelect?: (path: string) => boolean
   owner: string
   repo: string
   selectedPath?: string
+  treeItems?: GitHubRepositoryTreeItem[]
+}
+
+const prefetchedFileRoutes = new Set<string>()
+const MAX_PREFETCHED_FILE_ROUTES = 250
+
+function toTreeDirectoryPath(path: string) {
+  return path.endsWith("/") ? path : `${path}/`
+}
+
+function toRepositoryPath(path: string) {
+  return path.endsWith("/") ? path.slice(0, -1) : path
+}
+
+function getTreeRowFromEvent(event: MouseEvent<HTMLElement>) {
+  return event
+    .nativeEvent
+    .composedPath()
+    .find(
+      (target): target is HTMLElement =>
+        target instanceof HTMLElement &&
+        target.getAttribute("data-type") === "item"
+    )
 }
 
 export function getRepositoryItemIcon(
@@ -238,168 +270,190 @@ export function getRepositoryItemIcon(
 
 function RepositoryFileTreeInner({
   branch,
+  commit,
   initialContents,
+  onFileSelect,
   owner,
   repo,
   selectedPath,
+  treeItems = [],
 }: RepositoryFileTreeProps) {
-  const [expandedPaths, setExpandedPaths] = useState<Record<string, boolean>>(
-    {}
+  const router = useRouter()
+  const pathname = usePathname()
+  const lastNavigationRef = useRef<string | null>(null)
+  const filePaths = useMemo(
+    () =>
+      treeItems.length > 0
+        ? treeItems.map((item) =>
+            item.type === "tree" ? toTreeDirectoryPath(item.path) : item.path
+          )
+        : initialContents.map((item) =>
+            item.type === "dir" ? toTreeDirectoryPath(item.path) : item.path
+          ),
+    [initialContents, treeItems]
   )
-  const [childrenByPath, setChildrenByPath] = useState<
-    Record<string, GitHubRepositoryContent[]>
-  >({})
-  const [loadingPaths, setLoadingPaths] = useState<Record<string, boolean>>({})
-  const inflightRequestsRef = useRef<
-    Partial<Record<string, Promise<GitHubRepositoryContent[]>>>
-  >({})
-  const prefetchedRef = useRef(false)
+  const directoryPaths = useMemo(
+    () =>
+      new Set(
+        treeItems.length > 0
+          ? treeItems
+              .filter((item) => item.type === "tree")
+              .flatMap((item) => [item.path, toTreeDirectoryPath(item.path)])
+          : initialContents
+              .filter((item) => item.type === "dir")
+              .flatMap((item) => [item.path, toTreeDirectoryPath(item.path)])
+      ),
+    [initialContents, treeItems]
+  )
+  const selectedPaths = selectedPath ? [selectedPath] : []
+  const navigableFilePaths = useMemo(
+    () =>
+      treeItems.length > 0
+        ? treeItems
+            .filter((item) => item.type === "blob")
+            .map((item) => item.path)
+        : initialContents
+            .filter((item) => item.type !== "dir")
+            .map((item) => item.path),
+    [initialContents, treeItems]
+  )
+  const buildFileUrl = useCallback(
+    (path: string) => {
+      const params = new URLSearchParams()
+      if (branch) params.set("branch", branch)
+      if (commit) params.set("commit", commit)
+      params.set("path", path)
 
-  const rootItems = useMemo(() => initialContents, [initialContents])
-
-  const loadDirectoryContents = useCallback(
-    async (path: string, showLoading = true) => {
-      if (childrenByPath[path]) {
-        return childrenByPath[path]
-      }
-
-      if (inflightRequestsRef.current[path]) {
-        return inflightRequestsRef.current[path]
-      }
-
-      if (showLoading) {
-        setLoadingPaths((current) => ({ ...current, [path]: true }))
-      }
-
-      const query = new URLSearchParams({
-        ...(branch ? { branch } : {}),
-        owner,
-        path,
-        repo,
-      })
-
-      const request = fetch(`/api/repository-contents?${query.toString()}`, {
-        cache: "no-store",
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            return []
-          }
-
-          const data = (await response.json()) as {
-            contents: GitHubRepositoryContent[]
-          }
-
-          setChildrenByPath((current) => ({
-            ...current,
-            [path]: data.contents,
-          }))
-
-          return data.contents
-        })
-        .finally(() => {
-          delete inflightRequestsRef.current[path]
-
-          if (showLoading) {
-            setLoadingPaths((current) => ({ ...current, [path]: false }))
-          }
-        })
-
-      inflightRequestsRef.current[path] = request
-
-      return request
+      return `${pathname}?${params.toString()}`
     },
-    [branch, childrenByPath, owner, repo]
+    [branch, commit, pathname]
   )
+  const navigateToFile = useCallback(
+    (path: string) => {
+      const repositoryPath = toRepositoryPath(path)
+      if (directoryPaths.has(path) || directoryPaths.has(repositoryPath)) return
+      const href = buildFileUrl(repositoryPath)
+      if (lastNavigationRef.current === href) return
+
+      const handledInstantly = onFileSelect?.(repositoryPath) ?? false
+      lastNavigationRef.current = href
+
+      if (handledInstantly) {
+        window.history.pushState(null, "", href)
+        return
+      }
+
+      router.push(href)
+    },
+    [buildFileUrl, directoryPaths, onFileSelect, router]
+  )
+
+  const handleTreeClick = (event: MouseEvent<HTMLElement>) => {
+    const row = getTreeRowFromEvent(event)
+
+    if (!row || row.getAttribute("data-item-type") !== "file") return
+
+    const path = row.getAttribute("data-item-path")
+    if (!path) return
+
+    navigateToFile(path)
+  }
+
+  const handleTreeClickCapture = (event: MouseEvent<HTMLElement>) => {
+    const row = getTreeRowFromEvent(event)
+
+    if (!row || row.getAttribute("data-item-type") !== "folder") return
+
+    const path = row.getAttribute("data-item-path")
+    const item = path ? model.getItem(path) : null
+
+    if (!item || !item.isDirectory()) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    ;(item as { toggle(): void }).toggle()
+  }
 
   useEffect(() => {
-    if (prefetchedRef.current || initialContents.length === 0) return
-    prefetchedRef.current = true
+    if (navigableFilePaths.length === 0) return
 
-    const directories = initialContents
-      .filter((item) => item.type === "dir")
-      .map((item) => item.path)
+    const pendingRoutes = navigableFilePaths
+      .filter((path) => path !== selectedPath)
+      .slice(0, MAX_PREFETCHED_FILE_ROUTES)
+      .map(buildFileUrl)
+      .filter((route) => !prefetchedFileRoutes.has(route))
 
-    if (directories.length === 0) return
+    if (pendingRoutes.length === 0) return
 
-    Promise.all(
-      directories.map((path) => loadDirectoryContents(path, false))
-    ).catch(() => {})
-  }, [initialContents, loadDirectoryContents])
+    let timer: number | null = null
+    let index = 0
 
-  const toggleDirectory = async (path: string) => {
-    if (expandedPaths[path]) {
-      setExpandedPaths((current) => ({ ...current, [path]: false }))
-      return
+    const prefetchNext = () => {
+      const route = pendingRoutes[index]
+      if (!route) return
+
+      if (!prefetchedFileRoutes.has(route)) {
+        prefetchedFileRoutes.add(route)
+        router.prefetch(route)
+      }
+
+      index += 1
+
+      if (index < pendingRoutes.length) {
+        timer = window.setTimeout(prefetchNext, 25)
+      }
     }
 
-    await loadDirectoryContents(path)
-    setExpandedPaths((current) => ({ ...current, [path]: true }))
-  }
+    timer = window.setTimeout(prefetchNext, 0)
 
-  const renderItems = (items: GitHubRepositoryContent[], depth = 0) => {
-    return items.map((item) => {
-      const isDirectory = item.type === "dir"
-      const isExpanded = Boolean(expandedPaths[item.path])
-      const isSelected = selectedPath === item.path
-      const childItems = childrenByPath[item.path] ?? []
+    return () => {
+      if (timer !== null) window.clearTimeout(timer)
+    }
+  }, [buildFileUrl, navigableFilePaths, router, selectedPath])
 
-      return (
-        <div key={item.path}>
-          {isDirectory ? (
-            <button
-              type="button"
-              onClick={() => void toggleDirectory(item.path)}
-              className={cn(
-                "flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition hover:bg-accent/20",
-                isSelected ? "bg-accent/30" : undefined
-              )}
-              style={{ paddingLeft: `${16 + depth * 18}px` }}
-            >
-              <ChevronRight
-                className={cn(
-                  "size-4 shrink-0 text-muted-foreground transition-transform",
-                  isExpanded ? "rotate-90" : undefined
-                )}
-              />
-              {getRepositoryItemIcon(item)}
-              <span className="truncate font-medium">{item.name}</span>
-              {loadingPaths[item.path] && (
-                <Loader className="ml-auto scale-70 text-muted-foreground" />
-              )}
-            </button>
-          ) : (
-            <Link
-              href={
-                branch
-                  ? `/${owner}/${repo}?branch=${encodeURIComponent(branch)}&path=${encodeURIComponent(item.path)}`
-                  : `/${owner}/${repo}?path=${encodeURIComponent(item.path)}`
-              }
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 text-sm transition hover:bg-accent/20",
-                isSelected ? "bg-accent/30" : undefined
-              )}
-              style={{ paddingLeft: `${34 + depth * 18}px` }}
-            >
-              {getRepositoryItemIcon(item)}
-              <span className="truncate font-medium">{item.name}</span>
-            </Link>
-          )}
-
-          {isDirectory && isExpanded && childItems.length > 0
-            ? renderItems(childItems, depth + 1)
-            : null}
-        </div>
-      )
-    })
-  }
+  const { model } = useFileTree({
+    flattenEmptyDirectories: false,
+    initialExpansion: "closed",
+    initialSelectedPaths: selectedPaths,
+    itemHeight: 32,
+    paths: filePaths,
+    search: filePaths.length > 8,
+    stickyFolders: true,
+    unsafeCSS: `
+      :host {
+        --trees-bg-override: transparent;
+        --trees-fg-override: hsl(var(--foreground));
+        --trees-muted-fg-override: hsl(var(--muted-foreground));
+        --trees-selected-bg-override: hsl(var(--accent) / 0.35);
+        --trees-hover-bg-override: hsl(var(--accent) / 0.2);
+        --trees-border-color-override: hsl(var(--border));
+      }
+      button[data-type='item'] {
+        font: inherit;
+      }
+    `,
+  })
 
   return (
-    <div className="divide-y divide-border/0">{renderItems(rootItems)}</div>
+    <div className="py-4">
+      <FileTree
+        aria-label={`${owner}/${repo} files`}
+        className="block min-h-80 w-full overflow-hidden"
+        model={model}
+        onClick={handleTreeClick}
+        onClickCapture={handleTreeClickCapture}
+        style={{ height: "min(70vh, 720px)" }}
+      />
+    </div>
   )
 }
 
 export default function RepositoryFileTree(props: RepositoryFileTreeProps) {
-  const treeKey = `${props.owner}/${props.repo}/${props.branch ?? "default"}`
+  const treeKey = [
+    props.owner,
+    props.repo,
+    props.branch ?? "default",
+    props.commit ?? "branch",
+  ].join("/")
   return <RepositoryFileTreeInner key={treeKey} {...props} />
 }

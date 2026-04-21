@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import {
-  ChevronRight,
   CircleDot,
   Eye,
   EyeOff,
@@ -19,9 +18,9 @@ import EmptyRepositoryInstructions from "@/components/EmptyRepositoryInstruction
 import Navbar from "@/components/Navbar"
 import RepositoryActions from "@/components/RepositoryActions"
 import RepositoryBranchSelector from "@/components/RepositoryBranchSelector"
+import RepositoryCodeBrowser from "@/components/RepositoryCodeBrowser"
+import RepositoryCommits from "@/components/RepositoryCommits"
 import RepositoryEngagementActions from "@/components/RepositoryEngagementActions"
-import RepositoryFileTree from "@/components/RepositoryFileTree"
-import RepositoryFilePreview from "@/components/RepositoryFilePreview"
 import RepoKeyboardShortcuts from "@/components/RepoKeyboardShortcuts"
 import RepositorySettingsForm from "@/components/RepositorySettingsForm"
 import RepositoryTabs from "@/components/RepositoryTabs"
@@ -46,14 +45,18 @@ import {
   getGitHubRepositoryIssues,
   getGitHubRepositoryLanguages,
   getGitHubRepositoryPageData,
+  getGitHubRepositoryPreloadedFilePreviews,
   getGitHubRepositoryPullRequests,
   getGitHubRepositoryPullRequestCount,
   getGitHubRepositoryReleases,
+  getGitHubRepositoryTree,
   isGitHubRepositoryStarred,
+  type GitHubRepositoryFilePreview,
   type GitHubRepositoryCommit,
   type GitHubRepositoryIssue,
   type GitHubRepositoryPullRequest,
   type GitHubRepositoryRelease,
+  type GitHubRepositoryTreeItem,
 } from "@/lib/github"
 import { getSessionUser } from "@/lib/session"
 
@@ -286,6 +289,8 @@ export default async function RepositoryPage({
   let issueCount = 0
   let pullRequestCount = 0
   let repositoryLanguages: Record<string, number> = {}
+  let repositoryTreeItems: GitHubRepositoryTreeItem[] = []
+  let preloadedFilePreviews: Record<string, GitHubRepositoryFilePreview> = {}
 
   if (!isAuthenticated || currentTab === "code" || currentTab === "commits") {
     const [commitsResult, countResult] = await Promise.all([
@@ -324,10 +329,23 @@ export default async function RepositoryPage({
   }
 
   if (!isAuthenticated || currentTab === "code") {
-    repositoryLanguages = await getGitHubRepositoryLanguages(
+    const [languagesResult, treeResult] = await Promise.all([
+      getGitHubRepositoryLanguages(username, repo, sessionUser),
+      getGitHubRepositoryTree(
+        username,
+        repo,
+        sessionUser,
+        commitRef ?? resolvedBranch
+      ),
+    ])
+    repositoryLanguages = languagesResult
+    repositoryTreeItems = treeResult
+    preloadedFilePreviews = await getGitHubRepositoryPreloadedFilePreviews(
       username,
       repo,
-      sessionUser
+      sessionUser,
+      commitRef ?? resolvedBranch,
+      repositoryTreeItems
     )
   }
   const latestRelease = releases[0] ?? null
@@ -516,86 +534,25 @@ export default async function RepositoryPage({
                     remoteUrl={repository.html_url}
                   />
                 ) : (
-                  <div className="space-y-4 lg:space-y-0">
-                    <div className="space-y-4 lg:hidden">
-                      <RepositoryFilePreview
-                        branch={contentRef}
-                        canEdit={canEditRepository}
-                        owner={username}
-                        readme={readme}
-                        repo={repo}
-                        selectedItem={selectedItem}
+                  <RepositoryCodeBrowser
+                    canEdit={canEditRepository}
+                    commit={commitRef}
+                    initialContents={contents}
+                    languageCard={
+                      <RepositoryLanguageCard
+                        languageDistribution={languageDistribution}
                       />
-
-                      {contents.length > 0 ? (
-                        <details
-                          className="group overflow-hidden rounded-2xl border bg-card shadow-sm"
-                          open={!selectedItem && !readme}
-                        >
-                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium">
-                            <span>Browse files</span>
-                            <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                              {selectedItem?.name ?? `${contents.length} items`}
-                              <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
-                            </span>
-                          </summary>
-                          <div className="border-t border-border/70">
-                            <RepositoryFileTree
-                              branch={contentRef}
-                              initialContents={contents}
-                              owner={username}
-                              repo={repo}
-                              selectedPath={path}
-                            />
-                          </div>
-                          {languageDistribution.length > 0 ? (
-                            <div className="border-t border-border/70 p-3">
-                              <RepositoryLanguageCard
-                                languageDistribution={languageDistribution}
-                              />
-                            </div>
-                          ) : null}
-                        </details>
-                      ) : null}
-                    </div>
-
-                    <div className="hidden gap-6 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-                      <div className="space-y-4">
-                        <Card className="self-start rounded-2xl">
-                          <CardContent className="p-0">
-                            {contents.length > 0 ? (
-                              <RepositoryFileTree
-                                branch={contentRef}
-                                initialContents={contents}
-                                owner={username}
-                                repo={repo}
-                                selectedPath={path}
-                              />
-                            ) : (
-                              <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                                No repository contents available.
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-
-                        <RepositoryLanguageCard
-                          languageDistribution={languageDistribution}
-                        />
-                      </div>
-
-                      <div className="space-y-6">
-                        <RepositoryFilePreview
-                          branch={contentRef}
-                          canEdit={canEditRepository}
-                          owner={username}
-                          readme={readme}
-                          repo={repo}
-                          selectedItem={selectedItem}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                    }
+                    owner={username}
+                    preloadedFiles={preloadedFilePreviews}
+                    previewBranch={contentRef}
+                    readme={readme}
+                    repo={repo}
+                    selectedItem={selectedItem}
+                    selectedPath={path}
+                    treeBranch={resolvedBranch}
+                    treeItems={repositoryTreeItems}
+                  />
                 )
               }
               commitsContent={
@@ -607,39 +564,12 @@ export default async function RepositoryPage({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {commits.length > 0 ? (
-                      <div className="divide-y divide-border">
-                        {commits.map((commit) => (
-                          <A
-                            key={commit.sha}
-                            href={`/${username}/${repo}?commit=${encodeURIComponent(commit.sha)}&branch=${encodeURIComponent(resolvedBranch)}`}
-                            className="block px-5 py-4 transition hover:bg-accent/20"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="min-w-0">
-                                <div className="max-w-[70ch] truncate text-sm font-medium text-foreground">
-                                  {commit.commit.message.split("\n")[0]}
-                                </div>
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                  {commit.commit.author?.name ?? "Unknown"} ·{" "}
-                                  {commit.sha.slice(0, 7)}
-                                </div>
-                              </div>
-                              <div className="shrink-0 text-xs text-muted-foreground">
-                                {formatRelativeDate(
-                                  commit.commit.author?.date ??
-                                    repository.updated_at
-                                )}
-                              </div>
-                            </div>
-                          </A>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                        No commits available for this branch.
-                      </div>
-                    )}
+                    <RepositoryCommits
+                      commits={commits}
+                      owner={username}
+                      repo={repo}
+                      repositoryUpdatedAt={repository.updated_at}
+                    />
                   </CardContent>
                 </Card>
               }

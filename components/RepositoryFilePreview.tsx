@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import type { GitHubRepositoryFilePreview } from "@/lib/github"
 import { Textarea } from "./ui/textarea"
 
 type RepositoryFilePreviewProps = {
@@ -52,19 +53,7 @@ type RepositoryFilePreviewProps = {
     sha: string
   } | null
   repo: string
-  selectedItem: {
-    downloadUrl: string | null
-    htmlUrl: string | null
-    isImage: boolean
-    isMarkdown: boolean
-    isText: boolean
-    isVideo: boolean
-    name: string
-    path: string
-    sha: string
-    text: string
-    type: "file"
-  } | null
+  selectedItem: GitHubRepositoryFilePreview | null
 }
 
 type PreviewTarget = {

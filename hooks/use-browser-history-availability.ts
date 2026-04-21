@@ -11,6 +11,8 @@ export function useBrowserHistoryAvailability() {
   const [canGoForward, setCanGoForward] = useState(false)
 
   useEffect(() => {
+    let availabilityTimer: number | null = null
+
     const readSessionNumber = (key: string) => {
       const value = window.sessionStorage.getItem(key)
       return value ? Number(value) : 0
@@ -19,6 +21,17 @@ export function useBrowserHistoryAvailability() {
     const syncAvailability = (index: number, maxIndex: number) => {
       setCanGoBack(index > 0 || window.history.length > 1)
       setCanGoForward(index < maxIndex)
+    }
+
+    const scheduleAvailabilitySync = (index: number, maxIndex: number) => {
+      if (availabilityTimer !== null) {
+        window.clearTimeout(availabilityTimer)
+      }
+
+      availabilityTimer = window.setTimeout(() => {
+        availabilityTimer = null
+        syncAvailability(index, maxIndex)
+      }, 0)
     }
 
     const originalPushState = window.history.pushState.bind(window.history)
@@ -54,7 +67,7 @@ export function useBrowserHistoryAvailability() {
       const nextIndex = readSessionNumber(HISTORY_INDEX_KEY) + 1
       window.sessionStorage.setItem(HISTORY_INDEX_KEY, String(nextIndex))
       window.sessionStorage.setItem(HISTORY_MAX_KEY, String(nextIndex))
-      syncAvailability(nextIndex, nextIndex)
+      scheduleAvailabilitySync(nextIndex, nextIndex)
 
       return originalPushState(
         { ...(data ?? {}), [HISTORY_STATE_KEY]: nextIndex },
@@ -70,7 +83,7 @@ export function useBrowserHistoryAvailability() {
           : readSessionNumber(HISTORY_INDEX_KEY)
 
       window.sessionStorage.setItem(HISTORY_INDEX_KEY, String(index))
-      syncAvailability(index, readSessionNumber(HISTORY_MAX_KEY))
+      scheduleAvailabilitySync(index, readSessionNumber(HISTORY_MAX_KEY))
 
       return originalReplaceState(
         { ...(data ?? {}), [HISTORY_STATE_KEY]: index },
@@ -93,6 +106,10 @@ export function useBrowserHistoryAvailability() {
     window.addEventListener("popstate", handlePopState)
 
     return () => {
+      if (availabilityTimer !== null) {
+        window.clearTimeout(availabilityTimer)
+      }
+
       window.history.pushState = originalPushState
       window.history.replaceState = originalReplaceState
       window.removeEventListener("popstate", handlePopState)

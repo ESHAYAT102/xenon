@@ -6,10 +6,34 @@ type RepoKeyboardShortcutsProps = {
   enabled: boolean
 }
 
-function isEditableTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false
-  const tag = target.tagName
-  return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable
+function isEditableElement(element: HTMLElement) {
+  const tag = element.tagName
+
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    element.isContentEditable ||
+    element.getAttribute("contenteditable") === "true" ||
+    element.getAttribute("role") === "textbox"
+  )
+}
+
+function isEditableTarget(event: KeyboardEvent) {
+  const path = event.composedPath()
+
+  for (const target of path) {
+    if (!(target instanceof HTMLElement)) continue
+    if (isEditableElement(target)) return true
+
+    const editableAncestor = target.closest(
+      "input, textarea, select, [contenteditable='true'], [role='textbox']"
+    )
+
+    if (editableAncestor) return true
+  }
+
+  return false
 }
 
 function triggerByDataAttribute(attr: string) {
@@ -25,7 +49,7 @@ export default function RepoKeyboardShortcuts({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return
-      if (isEditableTarget(event.target)) return
+      if (isEditableTarget(event)) return
 
       switch (event.key.toLowerCase()) {
         case "s":
