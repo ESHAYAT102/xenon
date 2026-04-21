@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { ThemeProvider as NextThemesProvider } from "next-themes"
+import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
 import { useThemeTransition } from "@/hooks/use-theme-transition"
+import { THEME_IDS, getThemeMode } from "@/lib/themes"
 
 function ThemeProvider({
   children,
@@ -14,13 +15,26 @@ function ThemeProvider({
       attribute="class"
       defaultTheme="system"
       enableSystem
+      themes={THEME_IDS}
       disableTransitionOnChange
       {...props}
     >
       <ThemeHotkey />
+      <ThemeColorScheme />
       {children}
     </NextThemesProvider>
   )
+}
+
+function ThemeColorScheme() {
+  const { resolvedTheme, theme } = useTheme()
+
+  React.useEffect(() => {
+    const currentTheme = theme === "system" ? resolvedTheme : theme
+    document.documentElement.style.colorScheme = getThemeMode(currentTheme)
+  }, [resolvedTheme, theme])
+
+  return null
 }
 
 function isTypingTarget(target: EventTarget | null) {

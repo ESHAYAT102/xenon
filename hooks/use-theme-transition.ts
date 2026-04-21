@@ -3,16 +3,24 @@
 import { useCallback } from "react"
 import { useTheme } from "next-themes"
 
+import {
+  THEME_CLASS_NAMES,
+  getPairedThemeId,
+  getThemeMode,
+  type ThemeId,
+} from "@/lib/themes"
+
 type ViewTransitionDocument = Document & {
   startViewTransition?: (updateCallback: () => void) => void
 }
 
 function applyThemeClass(theme: string) {
   const root = document.documentElement
+  const mode = getThemeMode(theme)
 
-  root.classList.remove("light", "dark")
+  root.classList.remove(...THEME_CLASS_NAMES)
   root.classList.add(theme)
-  root.style.colorScheme = theme
+  root.style.colorScheme = mode
 }
 
 function shouldSkipViewTransition() {
@@ -22,17 +30,14 @@ function shouldSkipViewTransition() {
   )
 }
 
-function getNextTheme(resolvedTheme?: string) {
-  return resolvedTheme === "dark" ? "light" : "dark"
-}
-
 export function useThemeTransition() {
-  const { resolvedTheme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme, theme } = useTheme()
 
   const setThemeWithTransition = useCallback(
-    (nextTheme: "light" | "dark") => {
+    (nextTheme: ThemeId) => {
       if (shouldSkipViewTransition()) {
         setTheme(nextTheme)
+        document.documentElement.style.colorScheme = getThemeMode(nextTheme)
         return
       }
 
@@ -47,12 +52,13 @@ export function useThemeTransition() {
   )
 
   const toggleTheme = useCallback(() => {
-    const nextTheme = getNextTheme(resolvedTheme)
+    const nextTheme = getPairedThemeId(theme === "system" ? resolvedTheme : theme)
     setThemeWithTransition(nextTheme)
     return nextTheme
-  }, [resolvedTheme, setThemeWithTransition])
+  }, [resolvedTheme, setThemeWithTransition, theme])
 
   return {
+    theme,
     resolvedTheme,
     setThemeWithTransition,
     toggleTheme,

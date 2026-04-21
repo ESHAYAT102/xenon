@@ -10,6 +10,7 @@ import {
   LogIn,
   LogOut,
   Moon,
+  Palette,
   Plus,
   RotateCw,
   Search,
@@ -24,11 +25,20 @@ import { useAuth } from "@/components/AuthProvider"
 import { Kbd, KbdGroup } from "@/components/ui/kbd"
 import { useThemeTransition } from "@/hooks/use-theme-transition"
 import { usePrefetchRoutes } from "@/hooks/usePrefetchRoutes"
+import {
+  THEME_FAMILIES,
+  getThemeFamily,
+  getThemeIdForFamily,
+  getThemeMode,
+  type ThemeFamilyId,
+  type ThemeId,
+} from "@/lib/themes"
 
 type CommandPaletteProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onOpenNotificationsChange?: (open: boolean) => void
+  initialValue?: string
 }
 
 type CommandItem = {
@@ -78,10 +88,12 @@ export default function CommandPalette({
   open,
   onOpenChange,
   onOpenNotificationsChange,
+  initialValue,
 }: CommandPaletteProps) {
   const router = useRouter()
   const { user } = useAuth()
-  const { resolvedTheme, toggleTheme } = useThemeTransition()
+  const { resolvedTheme, setThemeWithTransition, theme, toggleTheme } =
+    useThemeTransition()
   const [value, setValue] = useState("")
   const [recentCommands, setRecentCommands] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -92,6 +104,10 @@ export default function CommandPalette({
     users: SearchUserResult[]
   }>({ repositories: [], users: [] })
   const [userRepos, setUserRepos] = useState<SearchRepositoryResult[]>([])
+  const currentTheme = ((theme === "system" ? resolvedTheme : theme) ??
+    "light") as ThemeId
+  const currentAppearance = getThemeMode(currentTheme)
+  const currentFamily = getThemeFamily(currentTheme)
 
   const items = useMemo<CommandItem[]>(() => {
     const baseItems: CommandItem[] = [
@@ -138,6 +154,13 @@ export default function CommandPalette({
 
     return baseItems
   }, [user?.login])
+
+  useEffect(() => {
+    if (!open) return
+    if (initialValue === undefined) return
+    setValue(initialValue)
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [initialValue, open])
 
   useEffect(() => {
     try {
@@ -237,9 +260,9 @@ export default function CommandPalette({
     return [
       {
         id: "change-theme",
-        label: "Change theme",
+        label: "Appearance",
         icon:
-          resolvedTheme === "dark" ? (
+          currentAppearance === "dark" ? (
             <Moon className="size-4 text-muted-foreground" />
           ) : (
             <Sun className="size-4 text-muted-foreground" />
@@ -248,10 +271,33 @@ export default function CommandPalette({
           markCommandUsed("change-theme")
           const nextTheme = toggleTheme()
           toast.success(
-            nextTheme === "dark" ? "Dark theme enabled" : "Light theme enabled"
+            `${getThemeMode(nextTheme) === "dark" ? "Dark" : "Light"} appearance enabled`
           )
         },
-        keywords: ["theme", "appearance", "dark", "light"],
+        keywords: ["appearance", "theme", "mode", "dark", "light"],
+      },
+      {
+        id: "choose-theme",
+        label: "Choose theme",
+        icon: <Palette className="size-4 text-muted-foreground" />,
+        onSelect: () => {
+          markCommandUsed("choose-theme")
+          setValue("/themes ")
+          requestAnimationFrame(() => inputRef.current?.focus())
+        },
+        keywords: [
+          "theme",
+          "appearance",
+          "catppuccin",
+          "dracula",
+          "tokyo",
+          "everforest",
+          "gruvbox",
+          "flexoki",
+          "nord",
+          "osaka",
+          "rose pine",
+        ],
       },
       {
         id: "reload",
@@ -313,7 +359,12 @@ export default function CommandPalette({
       },
       signItem,
     ]
-  }, [onOpenChange, resolvedTheme, toggleTheme, user])
+  }, [
+    currentAppearance,
+    onOpenChange,
+    toggleTheme,
+    user,
+  ])
 
   const orderedEntries = useMemo(() => {
     const seen = new Set<string>()
@@ -414,11 +465,19 @@ export default function CommandPalette({
         requiresArgument: false,
       },
       {
-        id: "slash-theme",
-        command: "/theme",
-        description: "Toggle theme",
-        placeholder: "/theme",
-        onSelect: () => setValue("/theme"),
+        id: "slash-themes",
+        command: "/themes",
+        description: "Choose theme",
+        placeholder: "/themes catppuccin",
+        onSelect: () => setValue("/themes "),
+        requiresArgument: false,
+      },
+      {
+        id: "slash-appearance",
+        command: "/appearance",
+        description: "Toggle appearance",
+        placeholder: "/appearance",
+        onSelect: () => setValue("/appearance"),
         requiresArgument: false,
       },
       {
@@ -604,9 +663,17 @@ export default function CommandPalette({
       window.open(githubUrl, "_blank", "noopener,noreferrer")
     })
     map.set("theme", () => {
+      setValue("/themes ")
+      requestAnimationFrame(() => inputRef.current?.focus())
+    })
+    map.set("themes", () => {
+      setValue("/themes ")
+      requestAnimationFrame(() => inputRef.current?.focus())
+    })
+    map.set("appearance", () => {
       const nextTheme = toggleTheme()
       toast.success(
-        nextTheme === "dark" ? "Dark theme enabled" : "Light theme enabled"
+        `${getThemeMode(nextTheme) === "dark" ? "Dark" : "Light"} appearance enabled`
       )
     })
 
@@ -690,12 +757,47 @@ export default function CommandPalette({
       return
     }
 
-    if (["theme", "toggle-theme"].includes(command)) {
+    if (["appearance", "toggle-theme"].includes(command)) {
       const nextTheme = toggleTheme()
       toast.success(
-        nextTheme === "dark" ? "Dark theme enabled" : "Light theme enabled"
+        `${getThemeMode(nextTheme) === "dark" ? "Dark" : "Light"} appearance enabled`
       )
-      onOpenChange(false)
+      requestAnimationFrame(() => inputRef.current?.focus())
+      return
+    }
+
+    if (["theme", "themes"].includes(command)) {
+      if (argument) {
+        const normalizedArgument = argument.toLowerCase()
+        const currentTheme = ((theme === "system" ? resolvedTheme : theme) ??
+          "light") as ThemeId
+        const matchingTheme = THEME_FAMILIES.find((family) => {
+          const label = family.name.toLowerCase()
+          return (
+            family.id === normalizedArgument ||
+            label === normalizedArgument ||
+            label.includes(normalizedArgument) ||
+            family.keywords.some((keyword) =>
+              keyword.includes(normalizedArgument)
+            )
+          )
+        })
+
+        if (!matchingTheme) {
+          toast.error("Theme not found")
+          return
+        }
+
+        setThemeWithTransition(
+          getThemeIdForFamily(currentTheme, matchingTheme.id as ThemeFamilyId)
+        )
+        toast.success(`${matchingTheme.name} enabled`)
+        onOpenChange(false)
+        return
+      }
+
+      setValue("/themes ")
+      requestAnimationFrame(() => inputRef.current?.focus())
       return
     }
 
@@ -794,6 +896,24 @@ export default function CommandPalette({
   const showSearchResults =
     parsed?.command === "search" && Boolean(parsed.argument)
   const showShortcuts = parsed?.command === "shortcuts"
+  const showThemes = parsed?.command === "themes" || parsed?.command === "theme"
+  const themeSearchQuery = showThemes
+    ? (parsed?.argument ?? "").trim().toLowerCase()
+    : ""
+  const filteredThemeFamilies = useMemo(() => {
+    if (!themeSearchQuery) return THEME_FAMILIES
+    return THEME_FAMILIES.filter((family) => {
+      const haystack = [
+        family.name,
+        family.description,
+        family.id,
+        ...family.keywords,
+      ]
+        .join(" ")
+        .toLowerCase()
+      return haystack.includes(themeSearchQuery)
+    })
+  }, [themeSearchQuery])
   const listHeightClass = startsWithSlash
     ? "max-h-[61.9vh]"
     : showShortcuts
@@ -842,7 +962,11 @@ export default function CommandPalette({
           onKeyDown={async (event) => {
             if (event.key !== "Enter") return
 
-            if (showSearchResults || showShortcuts || startsWithSlash) {
+            if (
+              showSearchResults ||
+              showShortcuts ||
+              startsWithSlash
+            ) {
               return
             }
 
@@ -879,7 +1003,58 @@ export default function CommandPalette({
         <Command.Empty className="px-3 py-4 text-sm text-muted-foreground">
           No results found.
         </Command.Empty>
-        {showSearchResults ? (
+        {showThemes ? (
+          <Command.Group>
+            {filteredThemeFamilies.length ? (
+              filteredThemeFamilies.map((family) => (
+                <Command.Item
+                  key={family.id}
+                  value={`${family.name} ${family.description} ${family.keywords.join(" ")}`}
+                  onSelect={() => {
+                    const nextTheme = getThemeIdForFamily(
+                      currentTheme,
+                      family.id as ThemeFamilyId
+                    )
+                    setThemeWithTransition(nextTheme)
+                    toast.success(`${family.name} enabled`)
+                  }}
+                  className="flex cursor-pointer items-center justify-between gap-5 rounded-xl px-3 py-3 text-sm text-foreground transition hover:bg-accent/30 aria-selected:bg-accent/50"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`size-4 rounded-full border ${
+                        currentFamily.id === family.id
+                          ? "border-transparent bg-primary"
+                          : "border-transparent bg-muted"
+                      }`}
+                      aria-hidden
+                    />
+                    <span className="flex shrink-0 items-center -space-x-1">
+                      {family.swatches.map((swatch) => (
+                        <span
+                          key={swatch}
+                          className="size-4 rounded-full"
+                          style={{ backgroundColor: swatch }}
+                        />
+                      ))}
+                    </span>
+                    <span className="truncate">{family.name}</span>
+                  </div>
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">
+                    {family.description}
+                  </span>
+                </Command.Item>
+              ))
+            ) : (
+              <Command.Item
+                value="No theme results"
+                className="flex cursor-default items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground"
+              >
+                No themes found.
+              </Command.Item>
+            )}
+          </Command.Group>
+        ) : showSearchResults ? (
           <Command.Group>
             {searchLoading ? (
               <Command.Item

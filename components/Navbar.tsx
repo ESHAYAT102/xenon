@@ -21,6 +21,7 @@ import {
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import { useThemeTransition } from "@/hooks/use-theme-transition"
 import type { GitHubNotification } from "@/lib/github"
+import { getThemeLabel, getThemeMode, type ThemeId } from "@/lib/themes"
 import {
   Settings,
   LogOutIcon,
@@ -43,8 +44,9 @@ type NavbarProps = {
 
 export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
   const { user } = useAuth()
-  const { resolvedTheme, toggleTheme } = useThemeTransition()
+  const { resolvedTheme, theme, toggleTheme } = useThemeTransition()
   const [isCommandOpen, setIsCommandOpen] = useState(false)
+  const [commandInitialValue, setCommandInitialValue] = useState("")
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const profileUrl = useMemo(
     () => (user?.login ? `/${user.login}` : "/"),
@@ -59,6 +61,13 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
 
   const handleCopyUrl = async () => {
     await navigator.clipboard.writeText(window.location.href)
+  }
+
+  const handleCommandOpenChange = (nextOpen: boolean) => {
+    setIsCommandOpen(nextOpen)
+    if (!nextOpen) {
+      setCommandInitialValue("")
+    }
   }
 
   useEffect(() => {
@@ -80,15 +89,18 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [])
 
-  const isDarkTheme = resolvedTheme === "dark"
+  const currentTheme = ((theme === "system" ? resolvedTheme : theme) ??
+    "light") as ThemeId
+  const isDarkTheme = getThemeMode(currentTheme) === "dark"
   const authUrl = "/api/auth/github/login?callbackUrl=/"
 
   return (
-    <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-primary-foreground/50 px-4 py-4 backdrop-blur-md md:px-8">
+    <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-background/75 px-4 py-4 backdrop-blur-md md:px-8">
       <CommandPalette
         open={isCommandOpen}
-        onOpenChange={setIsCommandOpen}
+        onOpenChange={handleCommandOpenChange}
         onOpenNotificationsChange={setIsNotificationsOpen}
+        initialValue={commandInitialValue}
       />
       <div className="flex items-center">
         <BrowserContextMenu
@@ -125,7 +137,12 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
           triggerClassName="inline-flex"
           menuChildren={
             <>
-              <ContextMenuItem onClick={() => setIsCommandOpen(true)}>
+              <ContextMenuItem
+                onClick={() => {
+                  setCommandInitialValue("")
+                  setIsCommandOpen(true)
+                }}
+              >
                 <Search />
                 Search
               </ContextMenuItem>
@@ -135,7 +152,10 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
           <Button
             className="rounded-full"
             variant="ghost"
-            onClick={() => setIsCommandOpen(true)}
+            onClick={() => {
+              setCommandInitialValue("")
+              setIsCommandOpen(true)
+            }}
           >
             <Search />
           </Button>
@@ -161,6 +181,17 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
             </>
           )}
         </div>
+        <Button
+          className="rounded-full"
+          variant="ghost"
+          title={`Theme: ${getThemeLabel(currentTheme)}`}
+          onClick={() => {
+            setCommandInitialValue("/themes ")
+            setIsCommandOpen(true)
+          }}
+        >
+          {isDarkTheme ? <Moon /> : <Sun />}
+        </Button>
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -209,12 +240,12 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
                 {isDarkTheme ? (
                   <>
                     <Sun className="mr-2 size-4" />
-                    Light Theme
+                    Light Appearance
                   </>
                 ) : (
                   <>
                     <Moon className="mr-2 size-4" />
-                    Dark Theme
+                    Dark Appearance
                   </>
                 )}
               </DropdownMenuItem>
