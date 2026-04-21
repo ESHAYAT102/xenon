@@ -12,7 +12,6 @@ import Navbar from "@/components/Navbar"
 import ProfileContentTabs from "@/components/ProfileContentTabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import {
   Empty,
@@ -150,25 +149,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       ])
     : [undefined, [], []]
 
-  const totalStars = repositories.reduce(
-    (sum, repository) => sum + repository.stargazers_count,
-    0
-  )
-  const totalForks = repositories.reduce(
-    (sum, repository) => sum + repository.forks_count,
-    0
-  )
-  const activeDays = new Set(
-    activity.map((item) => new Date(item.createdAt).toDateString())
-  ).size
-  const activityMonths = new Set(
-    activity.map((item) => {
-      const date = new Date(item.createdAt)
-      return `${date.getFullYear()}-${date.getMonth()}`
-    })
-  ).size
-  const averagePerMonth =
-    activityMonths > 0 ? Math.round(activity.length / activityMonths) : 0
   const languageDistribution = buildLanguageDistribution(repositories)
   const fallbackInitial = profile.login.charAt(0).toUpperCase()
   const followerCount = profile.followers ?? 0
@@ -291,29 +271,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </aside>
 
-          <section className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
-              {[
-                ["Repos", repositories.length],
-                ["Stars", totalStars],
-                ["Forks", totalForks],
-                ["Contributions", activity.length],
-                ["Active days", activeDays],
-                ["Avg per month", averagePerMonth],
-              ].map(([label, value]) => (
-                <Card key={label} className="rounded-2xl">
-                  <CardContent className="p-3.5">
-                    <div className="text-[2rem] font-semibold tracking-tight">
-                      {value}
-                    </div>
-                    <div className="mt-1.5 text-[11px] tracking-[0.22em] text-muted-foreground uppercase">
-                      {label}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <Separator className="block lg:hidden" />
 
+          <section className="space-y-5">
             <ProfileContentTabs
               activity={activity}
               repositories={repositories}
