@@ -30,6 +30,7 @@ import {
   Moon,
   Plus,
   Search,
+  Command,
   Sun,
   SquareArrowOutUpRight,
   BookMarked,
@@ -137,46 +138,32 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
         </BrowserContextMenu>
       </div>
       <div className="flex items-center gap-2">
-        <BrowserContextMenu
-          triggerClassName="inline-flex"
-          menuChildren={
-            <>
-              <ContextMenuItem
-                onClick={() => {
-                  setCommandInitialValue("")
-                  setIsCommandOpen(true)
-                }}
-              >
-                <Search />
-                Search
-              </ContextMenuItem>
-            </>
-          }
-        >
+        <BrowserContextMenu triggerClassName="inline-flex">
           <Button
-            className="rounded-full"
+            className="rounded-full mr-2"
             variant="ghost"
+            title="Open command palette"
             onClick={() => {
               setCommandInitialValue("")
               setIsCommandOpen(true)
             }}
           >
-            <Search />
+            <Command />
+          </Button>
+          <Button
+            asChild
+            className="rounded-full cursor-default"
+            variant="ghost"
+            title="Create new repository"
+          >
+            <A href={newRepositoryUrl}>
+              <Plus />
+            </A>
           </Button>
         </BrowserContextMenu>
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="items-center">
           {user && (
             <>
-              <Button
-                asChild
-                className="rounded-full"
-                variant="ghost"
-                title="Create new repository"
-              >
-                <A href={newRepositoryUrl}>
-                  <Plus />
-                </A>
-              </Button>
               <NotificationsDrawer
                 open={isNotificationsOpen}
                 onOpenChange={setIsNotificationsOpen}
@@ -186,7 +173,7 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
           )}
         </div>
         <Button
-          className="rounded-full"
+          className="hidden rounded-full md:flex"
           variant="ghost"
           title={`Theme: ${getThemeLabel(currentTheme)}`}
           onClick={() => {
@@ -200,9 +187,9 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
+                className="rounded-full"
                 variant="ghost"
                 size="icon"
-                className="hidden rounded-full md:flex"
               >
                 <Avatar size="sm">
                   <AvatarImage
