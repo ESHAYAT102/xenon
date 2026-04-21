@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 
 import A from "@/components/A"
@@ -60,6 +60,25 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
   const handleCopyUrl = async () => {
     await navigator.clipboard.writeText(window.location.href)
   }
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+
+      const target = event.target
+      if (!target) return
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
+      if (target instanceof HTMLElement && target.isContentEditable) return
+
+      if (event.key.toLowerCase() === "n") {
+        event.preventDefault()
+        setIsNotificationsOpen(true)
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
 
   const isDarkTheme = resolvedTheme === "dark"
   const authUrl = "/api/auth/github/login?callbackUrl=/"

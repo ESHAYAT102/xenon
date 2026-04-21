@@ -9,6 +9,7 @@ import {
   GitFork,
   GitPullRequest,
   Globe,
+  MessageSquare,
   SquareArrowOutUpRight,
   Tag,
 } from "lucide-react"
@@ -20,6 +21,7 @@ import Navbar from "@/components/Navbar"
 import RepositoryActions from "@/components/RepositoryActions"
 import RepositoryBranchSelector from "@/components/RepositoryBranchSelector"
 import RepositoryEngagementActions from "@/components/RepositoryEngagementActions"
+import RepositoryCommits from "@/components/RepositoryCommits"
 import RepositoryFileTree from "@/components/RepositoryFileTree"
 import RepositoryFilePreview from "@/components/RepositoryFilePreview"
 import RepoKeyboardShortcuts from "@/components/RepoKeyboardShortcuts"
@@ -38,6 +40,8 @@ import {
 } from "@/components/ui/empty"
 import {
   getGitHubRepositoryCommits,
+  getGitHubRepositoryDiscussionCount,
+  getGitHubRepositoryDiscussions,
   getGitHubNotifications,
   getGitHubRepositoryBranches,
   getGitHubRepositoryCommitCount,
@@ -51,6 +55,7 @@ import {
   getGitHubRepositoryReleases,
   isGitHubRepositoryStarred,
   type GitHubRepositoryCommit,
+  type GitHubRepositoryDiscussion,
   type GitHubRepositoryIssue,
   type GitHubRepositoryPullRequest,
   type GitHubRepositoryRelease,
@@ -65,6 +70,7 @@ type RepositoryPageProps = {
   searchParams: Promise<{
     branch?: string
     commit?: string
+    discussion?: string
     path?: string
     tab?: string
     issue?: string
@@ -75,6 +81,7 @@ type RepositoryPageProps = {
 type RepositoryTab =
   | "code"
   | "commits"
+  | "discussions"
   | "issues"
   | "pulls"
   | "releases"
@@ -179,7 +186,7 @@ export default async function RepositoryPage({
   searchParams,
 }: RepositoryPageProps) {
   const { username, repo } = await params
-  const { branch, commit, path, tab, issue, pr } = await searchParams
+  const { branch, commit, discussion, path, tab, issue, pr } = await searchParams
   const sessionUser = await getSessionUser()
   const commitRef = commit?.trim() || undefined
   const isAuthenticated = Boolean(sessionUser?.accessToken)
@@ -269,20 +276,25 @@ export default async function RepositoryPage({
       ? "issues"
       : pr
         ? "pulls"
-        : tab === "commits" ||
-            tab === "issues" ||
-            tab === "pulls" ||
-            tab === "releases" ||
-            (tab === "settings" && canManageRepository)
-          ? tab
-          : "code"
+        : discussion
+          ? "discussions"
+          : tab === "commits" ||
+              tab === "discussions" ||
+              tab === "issues" ||
+              tab === "pulls" ||
+              tab === "releases" ||
+              (tab === "settings" && canManageRepository)
+            ? tab
+            : "code"
     : "code"
 
   let commits: GitHubRepositoryCommit[] = []
+  let discussions: GitHubRepositoryDiscussion[] = []
   let issues: GitHubRepositoryIssue[] = []
   let pullRequests: GitHubRepositoryPullRequest[] = []
   let releases: GitHubRepositoryRelease[] = []
   let commitCount = 0
+  let discussionCount = 0
   let issueCount = 0
   let pullRequestCount = 0
   let repositoryLanguages: Record<string, number> = {}
@@ -308,6 +320,15 @@ export default async function RepositoryPage({
     ])
     issues = issuesResult
     issueCount = countResult
+  }
+
+  if (!isAuthenticated || currentTab === "discussions") {
+    const [discussionsResult, countResult] = await Promise.all([
+      getGitHubRepositoryDiscussions(username, repo, sessionUser),
+      getGitHubRepositoryDiscussionCount(username, repo, sessionUser),
+    ])
+    discussions = discussionsResult
+    discussionCount = countResult
   }
 
   if (!isAuthenticated || currentTab === "pulls") {
@@ -451,6 +472,11 @@ export default async function RepositoryPage({
                     </span>
                   </div>
                 ) : null}
+                {repository.archived ? (
+                  <div className="text-xs text-muted-foreground">
+                    This repository is archived.
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -485,6 +511,8 @@ export default async function RepositoryPage({
               canManageRepository={canManageRepository}
               commitCount={commitCount}
               currentTab={currentTab}
+              discussionCount={discussionCount}
+              hasDiscussions={repository.has_discussions}
               issueCount={issueCount}
               latestRelease={latestRelease}
               pullRequestCount={pullRequestCount}
@@ -607,39 +635,12 @@ export default async function RepositoryPage({
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {commits.length > 0 ? (
-                      <div className="divide-y divide-border">
-                        {commits.map((commit) => (
-                          <A
-                            key={commit.sha}
-                            href={`/${username}/${repo}?commit=${encodeURIComponent(commit.sha)}&branch=${encodeURIComponent(resolvedBranch)}`}
-                            className="block px-5 py-4 transition hover:bg-accent/20"
-                          >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="min-w-0">
-                                <div className="max-w-[70ch] truncate text-sm font-medium text-foreground">
-                                  {commit.commit.message.split("\n")[0]}
-                                </div>
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                  {commit.commit.author?.name ?? "Unknown"} ·{" "}
-                                  {commit.sha.slice(0, 7)}
-                                </div>
-                              </div>
-                              <div className="shrink-0 text-xs text-muted-foreground">
-                                {formatRelativeDate(
-                                  commit.commit.author?.date ??
-                                    repository.updated_at
-                                )}
-                              </div>
-                            </div>
-                          </A>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                        No commits available for this branch.
-                      </div>
-                    )}
+                    <RepositoryCommits
+                      commits={commits}
+                      owner={username}
+                      repo={repo}
+                      repositoryUpdatedAt={repository.updated_at}
+                    />
                   </CardContent>
                 </Card>
               }
@@ -726,6 +727,48 @@ export default async function RepositoryPage({
                     ) : (
                       <div className="px-5 py-12 text-center text-sm text-muted-foreground">
                         No open pull requests found.
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              }
+              discussionsContent={
+                <Card className="rounded-2xl">
+                  <CardHeader className="border-b border-border px-5 py-4">
+                    <CardTitle className="flex items-center gap-3 text-base">
+                      <MessageSquare className="size-4" />
+                      Discussions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {discussions.length > 0 ? (
+                      <div className="divide-y divide-border">
+                        {discussions.map((discussion) => (
+                          <A
+                            key={discussion.number}
+                            href={discussion.html_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block px-5 py-4 transition hover:bg-accent/20"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="max-w-[70ch] truncate text-sm font-medium text-foreground">
+                                  {discussion.title}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  #{discussion.number} by{" "}
+                                  {discussion.user?.login ?? "unknown"} ·{" "}
+                                  {discussion.comments} comments
+                                </div>
+                              </div>
+                            </div>
+                          </A>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                        No discussions found.
                       </div>
                     )}
                   </CardContent>

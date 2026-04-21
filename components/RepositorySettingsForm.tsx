@@ -6,6 +6,7 @@ import { AlertTriangle, Loader2, Save, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Card,
   CardContent,
@@ -58,6 +59,8 @@ export default function RepositorySettingsForm({
     defaultBranch:
       repository.default_branch ?? availableBranches[0]?.name ?? "main",
     description: repository.description ?? "",
+    has_discussions: repository.has_discussions,
+    has_wiki: repository.has_wiki,
     homepage: repository.homepage ?? "",
     name: repository.name,
     private: repository.private,
@@ -75,6 +78,8 @@ export default function RepositorySettingsForm({
         archived: formState.archived,
         default_branch: formState.defaultBranch,
         description: formState.description || null,
+        has_discussions: formState.has_discussions,
+        has_wiki: formState.has_wiki,
         homepage: formState.homepage || null,
         name: formState.name.trim(),
         owner: repository.owner.login,
@@ -110,6 +115,8 @@ export default function RepositorySettingsForm({
       archived: nextRepository.archived,
       defaultBranch: nextRepository.default_branch ?? formState.defaultBranch,
       description: nextRepository.description ?? "",
+      has_discussions: nextRepository.has_discussions,
+      has_wiki: nextRepository.has_wiki,
       homepage: nextRepository.homepage ?? "",
       name: nextRepository.name,
       private: nextRepository.private,
@@ -334,6 +341,48 @@ export default function RepositorySettingsForm({
                 <FieldDescription>
                   Archived repositories become read-only on GitHub.
                 </FieldDescription>
+              </FieldContent>
+            </Field>
+
+            <Field>
+              <FieldLabel>Features</FieldLabel>
+              <FieldContent className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="has_discussions"
+                    checked={formState.has_discussions}
+                    onCheckedChange={(checked) =>
+                      setFormState((current) => ({
+                        ...current,
+                        has_discussions: checked === true,
+                      }))
+                    }
+                  />
+                  <label
+                    htmlFor="has_discussions"
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Discussions
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="has_wiki"
+                    checked={formState.has_wiki}
+                    onCheckedChange={(checked) =>
+                      setFormState((current) => ({
+                        ...current,
+                        has_wiki: checked === true,
+                      }))
+                    }
+                  />
+                  <label
+                    htmlFor="has_wiki"
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Wiki
+                  </label>
+                </div>
               </FieldContent>
             </Field>
           </FieldGroup>

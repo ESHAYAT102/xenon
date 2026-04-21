@@ -8,6 +8,7 @@ import {
   FilePlus2,
   GitCommitHorizontal,
   GitPullRequest,
+  MessageSquare,
   MessageSquareText,
   Star,
 } from "lucide-react"
@@ -49,6 +50,8 @@ function categoryIcon(category: ProfileActivityItem["category"]) {
   switch (category) {
     case "Commits":
       return GitCommitHorizontal
+    case "Discussions":
+      return MessageSquare
     case "Issues":
       return MessageSquareText
     case "Pull Requests":

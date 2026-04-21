@@ -7,12 +7,15 @@ import {
   Code,
   GitCommitHorizontal,
   GitPullRequest,
+  MessageSquare,
+  Settings,
   Tag,
 } from "lucide-react"
 
 type RepositoryTab =
   | "code"
   | "commits"
+  | "discussions"
   | "issues"
   | "pulls"
   | "releases"
@@ -22,6 +25,8 @@ type RepositoryTabsProps = {
   canManageRepository: boolean
   commitCount: number
   currentTab: RepositoryTab
+  discussionCount: number
+  hasDiscussions: boolean
   issueCount: number
   latestRelease: { tag_name: string } | null
   pullRequestCount: number
@@ -30,6 +35,7 @@ type RepositoryTabsProps = {
   username: string
   codeContent: React.ReactNode
   commitsContent: React.ReactNode
+  discussionsContent: React.ReactNode
   issuesContent: React.ReactNode
   pullsContent: React.ReactNode
   releasesContent: React.ReactNode
@@ -40,6 +46,8 @@ export default function RepositoryTabs({
   canManageRepository,
   commitCount,
   currentTab,
+  discussionCount,
+  hasDiscussions,
   issueCount,
   latestRelease,
   pullRequestCount,
@@ -48,6 +56,7 @@ export default function RepositoryTabs({
   username,
   codeContent,
   commitsContent,
+  discussionsContent,
   issuesContent,
   pullsContent,
   releasesContent,
@@ -103,6 +112,19 @@ export default function RepositoryTabs({
             Issues
             <span className="text-xs text-muted-foreground">{issueCount}</span>
           </button>
+          {(hasDiscussions || canManageRepository) && (
+            <button
+              onClick={() => handleTabClick("discussions")}
+              className={tabLinkClass(activeTab === "discussions")}
+              data-repo-tab-discussions
+            >
+              <MessageSquare className="size-4" />
+              Discussions
+              <span className="text-xs text-muted-foreground">
+                {discussionCount}
+              </span>
+            </button>
+          )}
           <button
             onClick={() => handleTabClick("pulls")}
             className={tabLinkClass(activeTab === "pulls")}
@@ -133,6 +155,7 @@ export default function RepositoryTabs({
               className={tabLinkClass(activeTab === "settings")}
               data-repo-tab-settings
             >
+              <Settings className="size-4" />
               Settings
             </button>
           )}
@@ -149,6 +172,9 @@ export default function RepositoryTabs({
           </div>
           <div className={activeTab === "issues" ? "block" : "hidden"}>
             {issuesContent}
+          </div>
+          <div className={activeTab === "discussions" ? "block" : "hidden"}>
+            {discussionsContent}
           </div>
           <div className={activeTab === "pulls" ? "block" : "hidden"}>
             {pullsContent}

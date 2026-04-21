@@ -57,6 +57,8 @@ export type GitHubRepositoryMetadataUpdateInput = {
   archived?: boolean
   default_branch?: string | null
   description?: string | null
+  has_discussions?: boolean
+  has_wiki?: boolean
   homepage?: string | null
   name?: string
   private?: boolean
@@ -80,11 +82,13 @@ export type GitHubRepositoryFileDeleteInput = {
 export type GitHubRepository = {
   archived: boolean
   created_at: string
-  description: string | null
   default_branch?: string
+  description: string | null
   fork: boolean
   forks_count: number
   full_name?: string
+  has_discussions: boolean
+  has_wiki: boolean
   homepage?: string | null
   html_url: string
   id: number
@@ -176,6 +180,22 @@ export type GitHubRepositoryCommit = {
   sha: string
 }
 
+export type GitHubRepositoryCommitDiffFile = {
+  additions: number
+  changes: number
+  deletions: number
+  filename: string
+  patch: string | null
+  previousFilename: string | null
+  status: string
+}
+
+export type GitHubRepositoryCommitDiff = {
+  files: GitHubRepositoryCommitDiffFile[]
+  patch: string
+  sha: string
+}
+
 export type GitHubRepositoryIssue = {
   comments: number
   html_url: string
@@ -194,6 +214,17 @@ export type GitHubRepositoryPullRequest = {
   html_url: string
   number: number
   state: string
+  title: string
+  updated_at: string
+  user: {
+    login: string
+  } | null
+}
+
+export type GitHubRepositoryDiscussion = {
+  comments: number
+  html_url: string
+  number: number
   title: string
   updated_at: string
   user: {
@@ -250,6 +281,11 @@ type GitHubEvent = {
       message: string
       sha: string
     }>
+    discussion?: {
+      html_url: string
+      title: string
+      number: number
+    }
     issue?: {
       html_url: string
       title: string
@@ -274,6 +310,7 @@ type GitHubEvent = {
 export type ProfileActivityItem = {
   category:
     | "Commits"
+    | "Discussions"
     | "Issues"
     | "Pull Requests"
     | "Repositories Created"
@@ -314,6 +351,7 @@ const PROFILE_CACHE_TTL = 60_000
 const REPO_CACHE_TTL = 60_000
 
 const contentsCache = new Map<string, CacheEntry<GitHubRepositoryContent[]>>()
+const commitDiffCache = new Map<string, CacheEntry<GitHubRepositoryCommitDiff>>()
 const readmeCache = new Map<string, CacheEntry<GitHubRepositoryReadme | null>>()
 const selectedItemCache = new Map<
   string,
@@ -1524,6 +1562,82 @@ export async function getGitHubRepositoryCommitCount(
   )
 }
 
+function buildCommitPatch(files: GitHubRepositoryCommitDiffFile[]) {
+  return files
+    .filter((file) => file.patch)
+    .map((file) => {
+      const previousPath = file.previousFilename ?? file.filename
+      const oldPath =
+        file.status === "added" ? "/dev/null" : `a/${previousPath}`
+      const newPath =
+        file.status === "removed" ? "/dev/null" : `b/${file.filename}`
+
+      return [
+        `diff --git a/${previousPath} b/${file.filename}`,
+        file.status === "renamed"
+          ? `rename from ${previousPath}\nrename to ${file.filename}`
+          : null,
+        `--- ${oldPath}`,
+        `+++ ${newPath}`,
+        file.patch,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    })
+    .join("\n")
+}
+
+export async function getGitHubRepositoryCommitDiff(
+  owner: string,
+  repo: string,
+  sessionUser: SessionUser | null,
+  sha: string
+) {
+  const accessToken = sessionUser?.accessToken
+  const cacheKey = `${sessionUser?.login ?? "anon"}:${owner}/${repo}:commit:${sha}`
+  const cached = readCache(commitDiffCache, cacheKey)
+  if (cached) {
+    return cached
+  }
+
+  const commit = await fetchJson<{
+    files?: Array<{
+      additions?: number
+      changes?: number
+      deletions?: number
+      filename: string
+      patch?: string
+      previous_filename?: string
+      status: string
+    }>
+    sha: string
+  }>(
+    `https://api.github.com/repos/${owner}/${repo}/commits/${encodeURIComponent(sha)}`,
+    accessToken
+  )
+
+  const files =
+    commit?.files?.map((file) => ({
+      additions: file.additions ?? 0,
+      changes: file.changes ?? 0,
+      deletions: file.deletions ?? 0,
+      filename: file.filename,
+      patch: file.patch ?? null,
+      previousFilename: file.previous_filename ?? null,
+      status: file.status,
+    })) ?? []
+
+  const diff = {
+    files,
+    patch: buildCommitPatch(files),
+    sha: commit?.sha ?? sha,
+  } satisfies GitHubRepositoryCommitDiff
+
+  writeCache(commitDiffCache, cacheKey, diff, REPO_CACHE_TTL)
+
+  return diff
+}
+
 export async function getGitHubRepositoryIssues(
   owner: string,
   repo: string,
@@ -1597,6 +1711,37 @@ export async function getGitHubRepositoryReleases(
     `https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`,
     accessToken
   )
+}
+
+export async function getGitHubRepositoryDiscussions(
+  owner: string,
+  repo: string,
+  sessionUser: SessionUser | null
+) {
+  const accessToken = sessionUser?.accessToken
+
+  return (
+    (await fetchJson<GitHubRepositoryDiscussion[]>(
+      `https://api.github.com/repos/${owner}/${repo}/discussions?per_page=20`,
+      accessToken
+    )) ?? []
+  )
+}
+
+export async function getGitHubRepositoryDiscussionCount(
+  owner: string,
+  repo: string,
+  sessionUser: SessionUser | null
+) {
+  const accessToken = sessionUser?.accessToken
+  const query = encodeURIComponent(`repo:${owner}/${repo} is:discussion is:open`)
+
+  const result = await fetchJsonWithStatus<{ total_count: number }>(
+    `https://api.github.com/search/issues?q=${query}&per_page=1`,
+    accessToken
+  )
+
+  return result?.data?.total_count ?? 0
 }
 
 export async function getGitHubNotifications(
@@ -1785,6 +1930,21 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
           internalUrl: `/${event.repo.name}`,
         },
       ]
+    case "DiscussionEvent":
+      return event.payload.discussion
+        ? [
+            {
+              category: "Discussions",
+              createdAt: event.created_at,
+              id: event.id,
+              repoName: event.repo.name,
+              title: `${event.payload.discussion.title}`,
+              url: event.payload.discussion.html_url,
+              internalUrl: `/${event.repo.name}?tab=discussions&discussion=${event.payload.discussion.number}`,
+              status: "open",
+            },
+          ]
+        : []
     default:
       return []
   }

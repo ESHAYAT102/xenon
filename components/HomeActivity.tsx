@@ -6,6 +6,7 @@ import {
   FilePlus2,
   GitCommitHorizontal,
   GitPullRequest,
+  MessageSquare,
   Star,
 } from "lucide-react"
 
@@ -34,6 +35,8 @@ function getCategoryIcon(category: ProfileActivityItem["category"]) {
   switch (category) {
     case "Commits":
       return GitCommitHorizontal
+    case "Discussions":
+      return MessageSquare
     case "Issues":
       return CircleDot
     case "Pull Requests":
@@ -47,13 +50,15 @@ function getCategoryIcon(category: ProfileActivityItem["category"]) {
 
 export default function HomeActivity({ activity }: HomeActivityProps) {
   const [activeTab, setActiveTab] = useState<
-    "all" | "commits" | "issues" | "prs"
+    "all" | "commits" | "discussions" | "issues" | "prs"
   >("all")
 
   const filteredActivity = useMemo(() => {
     if (activeTab === "all") return activity.slice(0, 20)
     if (activeTab === "commits")
       return activity.filter((a) => a.category === "Commits").slice(0, 20)
+    if (activeTab === "discussions")
+      return activity.filter((a) => a.category === "Discussions").slice(0, 20)
     if (activeTab === "issues")
       return activity.filter((a) => a.category === "Issues").slice(0, 20)
     if (activeTab === "prs")
@@ -62,6 +67,7 @@ export default function HomeActivity({ activity }: HomeActivityProps) {
   }, [activity, activeTab])
 
   const commits = activity.filter((a) => a.category === "Commits")
+  const discussions = activity.filter((a) => a.category === "Discussions")
   const issues = activity.filter((a) => a.category === "Issues")
   const prs = activity.filter((a) => a.category === "Pull Requests")
 
@@ -96,6 +102,18 @@ export default function HomeActivity({ activity }: HomeActivityProps) {
           Commits
           <span className="text-xs text-muted-foreground">
             {commits.length}
+          </span>
+        </Button>
+        <Button
+          variant={activeTab === "discussions" ? "secondary" : "outline"}
+          size="sm"
+          className="gap-2 rounded-full"
+          onClick={() => setActiveTab("discussions")}
+        >
+          <MessageSquare className="size-4" />
+          Discussions
+          <span className="text-xs text-muted-foreground">
+            {discussions.length}
           </span>
         </Button>
         <Button
@@ -154,7 +172,7 @@ export default function HomeActivity({ activity }: HomeActivityProps) {
                   )}
                 </CardHeader>
                 <CardContent>
-                  <p className="line-clamp-2 text-sm">{item.title}</p>
+                  <p className="truncate text-sm">{item.title}</p>
                   <p className="mt-2 text-xs text-muted-foreground">
                     {item.repoName} · {formatRelativeDate(item.createdAt)}
                   </p>
