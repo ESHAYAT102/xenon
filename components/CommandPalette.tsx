@@ -1018,11 +1018,11 @@ export default function CommandPalette({
                     setThemeWithTransition(nextTheme)
                     toast.success(`${family.name} enabled`)
                   }}
-                  className="flex cursor-pointer items-center justify-between gap-5 rounded-xl px-3 py-3 text-sm text-foreground transition hover:bg-accent/30 aria-selected:bg-accent/50"
+                  className="flex cursor-pointer items-center justify-between gap-5 rounded-xl px-3 py-2 text-sm text-foreground transition hover:bg-accent/30 aria-selected:bg-accent/50"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span
-                      className={`size-4 rounded-full border ${
+                      className={`size-3 rounded-full border ${
                         currentFamily.id === family.id
                           ? "border-transparent bg-primary"
                           : "border-transparent bg-muted"
@@ -1033,16 +1033,13 @@ export default function CommandPalette({
                       {family.swatches.map((swatch) => (
                         <span
                           key={swatch}
-                          className="size-4 rounded-full"
+                          className="size-3 rounded-full"
                           style={{ backgroundColor: swatch }}
                         />
                       ))}
                     </span>
                     <span className="truncate">{family.name}</span>
                   </div>
-                  <span className="min-w-0 truncate text-xs text-muted-foreground">
-                    {family.description}
-                  </span>
                 </Command.Item>
               ))
             ) : (
