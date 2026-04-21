@@ -91,6 +91,7 @@ export default function RepositoryActions({
             variant="outline"
             className="w-full rounded-xl sm:w-auto"
             data-repo-action-clone
+            data-ui-sound="click"
           >
             <Copy />
             Clone
@@ -152,6 +153,7 @@ export default function RepositoryActions({
                   size="icon"
                   className="h-11 w-11 shrink-0 rounded-xl"
                   onClick={copyCloneUrl}
+                  data-ui-sound="copy"
                 >
                   {copied ? <Check /> : <Copy />}
                 </Button>
