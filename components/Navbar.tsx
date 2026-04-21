@@ -8,6 +8,7 @@ import { useAuth } from "@/components/AuthProvider"
 import BrowserContextMenu from "@/components/BrowserContextMenu"
 import CommandPalette from "@/components/CommandPalette"
 import NotificationsDrawer from "@/components/NotificationsDrawer"
+import { ThemeSwitcher } from "@/components/theme-switcher/theme-switcher"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -44,7 +45,7 @@ type NavbarProps = {
 
 export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
   const { user } = useAuth()
-  const { resolvedTheme, theme, toggleTheme } = useThemeTransition()
+  const { resolvedTheme, theme } = useThemeTransition()
   const [isCommandOpen, setIsCommandOpen] = useState(false)
   const [commandInitialValue, setCommandInitialValue] = useState("")
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
@@ -76,7 +77,11 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
 
       const target = event.target
       if (!target) return
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement
+      )
+        return
       if (target instanceof HTMLElement && target.isContentEditable) return
 
       if (event.key.toLowerCase() === "n") {
@@ -220,6 +225,10 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <div className="flex items-center justify-between gap-4 px-2 py-1.5">
+                  <ThemeSwitcher />
+                </div>
+                <DropdownMenuSeparator />
                 <A href={profileUrl}>
                   <DropdownMenuItem className="hover:bg-accent-foreground/10">
                     <User className="mr-2 size-4" />
@@ -233,22 +242,6 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
                   </DropdownMenuItem>
                 </A>
               </DropdownMenuGroup>
-              <DropdownMenuItem
-                className="hover:bg-accent-foreground/10"
-                onClick={toggleTheme}
-              >
-                {isDarkTheme ? (
-                  <>
-                    <Sun className="mr-2 size-4" />
-                    Light Appearance
-                  </>
-                ) : (
-                  <>
-                    <Moon className="mr-2 size-4" />
-                    Dark Appearance
-                  </>
-                )}
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="hover:bg-accent-foreground/10"

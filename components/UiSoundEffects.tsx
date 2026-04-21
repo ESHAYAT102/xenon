@@ -101,6 +101,7 @@ const interactiveSelector = [
   "[data-slot='button']",
   "[data-slot='dialog-close']",
   "[data-slot='context-menu-item']",
+  "[data-slot='context-menu-trigger']",
   "[data-slot='dropdown-menu-item']",
   "[data-slot='dropdown-menu-trigger']",
   "[data-slot='pagination-link']",
@@ -263,7 +264,7 @@ export function UiSoundEffects() {
 
   React.useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      if (event.button !== 0) return
+      if (event.button !== 0 && event.button !== 2) return
 
       const element = (event.target as Element | null)?.closest(
         interactiveSelector
