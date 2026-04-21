@@ -62,10 +62,11 @@ const sounds = {
   warning: defineSound(warningSound),
 }
 
-type UiSoundName = keyof typeof sounds
+export type UiSoundName = keyof typeof sounds
 
 export const UI_SOUNDS_DISABLED_KEY = "xenon:ui-sounds-disabled"
 export const UI_SOUNDS_CHANGED_EVENT = "xenon:ui-sounds-changed"
+export const UI_SOUND_PLAY_EVENT = "xenon:ui-sound-play"
 
 export function areUiSoundsDisabled() {
   if (typeof window === "undefined") return false
@@ -90,6 +91,13 @@ export function setUiSoundsDisabled(disabled: boolean) {
   )
 }
 
+export function playUiSound(name: UiSoundName) {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(
+    new CustomEvent(UI_SOUND_PLAY_EVENT, { detail: { name } })
+  )
+}
+
 const interactiveSelector = [
   "button",
   "a[href]",
@@ -101,7 +109,6 @@ const interactiveSelector = [
   "[data-slot='button']",
   "[data-slot='dialog-close']",
   "[data-slot='context-menu-item']",
-  "[data-slot='context-menu-trigger']",
   "[data-slot='dropdown-menu-item']",
   "[data-slot='dropdown-menu-trigger']",
   "[data-slot='pagination-link']",
@@ -114,6 +121,8 @@ const interactiveSelector = [
   "[role='option']",
   "[cmdk-item]",
 ].join(",")
+
+const contextMenuSelector = "[data-slot='context-menu-trigger']"
 
 const focusSelector = [
   "input:not([type='button']):not([type='checkbox']):not([type='radio']):not([type='reset']):not([type='submit'])",
@@ -264,12 +273,19 @@ export function UiSoundEffects() {
 
   React.useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
-      if (event.button !== 0 && event.button !== 2) return
+      const target = event.target as Element | null
 
-      const element = (event.target as Element | null)?.closest(
-        interactiveSelector
-      )
+      if (event.button === 2) {
+        const contextMenuElement = target?.closest(contextMenuSelector)
+        if (contextMenuElement && !isDisabled(contextMenuElement)) {
+          play("pop")
+        }
+        return
+      }
 
+      if (event.button !== 0) return
+
+      const element = target?.closest(interactiveSelector)
       if (!element || isDisabled(element)) return
 
       play(soundForElement(element))
@@ -349,16 +365,25 @@ export function UiSoundEffects() {
 
     }
 
+    const handlePlayEvent = (event: Event) => {
+      const name = (event as CustomEvent).detail.name
+      if (name in sounds) {
+        play(name)
+      }
+    }
+
     document.addEventListener("pointerdown", handlePointerDown, true)
     document.addEventListener("pointerover", handlePointerOver, true)
     document.addEventListener("focusin", handleFocusIn, true)
     document.addEventListener("keydown", handleKeyDown, true)
+    window.addEventListener(UI_SOUND_PLAY_EVENT, handlePlayEvent)
 
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown, true)
       document.removeEventListener("pointerover", handlePointerOver, true)
       document.removeEventListener("focusin", handleFocusIn, true)
       document.removeEventListener("keydown", handleKeyDown, true)
+      window.removeEventListener(UI_SOUND_PLAY_EVENT, handlePlayEvent)
     }
   }, [play])
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { BellIcon } from "lucide-react"
 
 import NotificationsPanel from "@/components/NotificationsPanel"
+import { playUiSound } from "@/components/UiSoundEffects"
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
@@ -31,6 +32,12 @@ export default function NotificationsDrawer({
   const [unreadOnly, setUnreadOnly] = useState(true)
   const [notifications, setNotifications] =
     useState<GitHubNotification[]>(initialNotifications)
+
+  useEffect(() => {
+    if (open) {
+      playUiSound("notification")
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -70,6 +77,7 @@ export default function NotificationsDrawer({
           className="rounded-full"
           variant="ghost"
           title="View notifications"
+          data-ui-sound="off"
         >
           <BellIcon />
         </Button>
