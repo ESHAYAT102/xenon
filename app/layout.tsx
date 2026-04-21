@@ -8,6 +8,7 @@ import { getSessionUser } from "@/lib/session"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+import { UiSoundEffects } from "@/components/UiSoundEffects"
 
 const geistHeading = Geist({ subsets: ["latin"], variable: "--font-heading" })
 
@@ -71,6 +72,7 @@ export default async function RootLayout({
         />
         <AuthProvider user={user}>
           <ThemeProvider>
+            <UiSoundEffects />
             {children}
             <Toaster richColors position="bottom-right" />
           </ThemeProvider>

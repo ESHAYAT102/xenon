@@ -14,6 +14,7 @@
   "dependencies": {
     "@pierre/diffs": "^1.1.16",
     "@react-symbols/icons": "^1.3.1",
+    "@web-kits/audio": "^0.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
