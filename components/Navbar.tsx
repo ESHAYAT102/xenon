@@ -8,7 +8,6 @@ import { useAuth } from "@/components/AuthProvider"
 import BrowserContextMenu from "@/components/BrowserContextMenu"
 import CommandPalette from "@/components/CommandPalette"
 import NotificationsDrawer from "@/components/NotificationsDrawer"
-import { ThemeSwitcher } from "@/components/theme-switcher/theme-switcher"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -224,10 +223,6 @@ export default function Page({ initialUnreadNotifications = [] }: NavbarProps) {
                     </span>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="flex items-center justify-between gap-4 px-2 py-1.5">
-                  <ThemeSwitcher />
-                </div>
                 <DropdownMenuSeparator />
                 <A href={profileUrl}>
                   <DropdownMenuItem className="hover:bg-accent-foreground/10">
