@@ -6,6 +6,7 @@ import { Command } from "cmdk"
 import {
   Bell,
   BookMarked,
+  Command as CommandIcon,
   Copy,
   LogIn,
   LogOut,
@@ -1070,7 +1071,7 @@ export default function CommandPalette({
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className="flex items-center gap-3 border-b border-border/80 px-4 py-3">
-        <Search className="size-4 text-muted-foreground" />
+        <CommandIcon className="size-4 text-muted-foreground" />
         <Command.Input
           value={value}
           onValueChange={setValue}

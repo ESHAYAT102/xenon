@@ -29,7 +29,6 @@ import {
   Copy,
   Moon,
   Plus,
-  Search,
   Command,
   Sun,
   SquareArrowOutUpRight,
