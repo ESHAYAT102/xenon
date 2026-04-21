@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Command } from "cmdk"
 import {
@@ -18,10 +18,17 @@ import {
   SquareArrowOutUpRight,
   Sun,
   User,
+  Volume2,
+  VolumeX,
 } from "lucide-react"
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/AuthProvider"
+import {
+  UI_SOUNDS_CHANGED_EVENT,
+  areUiSoundsDisabled,
+  setUiSoundsDisabled,
+} from "@/components/UiSoundEffects"
 import { Kbd, KbdGroup } from "@/components/ui/kbd"
 import { useThemeTransition } from "@/hooks/use-theme-transition"
 import { usePrefetchRoutes } from "@/hooks/usePrefetchRoutes"
@@ -104,6 +111,7 @@ export default function CommandPalette({
     users: SearchUserResult[]
   }>({ repositories: [], users: [] })
   const [userRepos, setUserRepos] = useState<SearchRepositoryResult[]>([])
+  const [soundsDisabled, setSoundsDisabledState] = useState(false)
   const currentTheme = ((theme === "system" ? resolvedTheme : theme) ??
     "light") as ThemeId
   const currentAppearance = getThemeMode(currentTheme)
@@ -177,6 +185,27 @@ export default function CommandPalette({
   }, [])
 
   useEffect(() => {
+    setSoundsDisabledState(areUiSoundsDisabled())
+
+    const onSoundPreferenceChange = (event: Event) => {
+      const nextDisabled = (event as CustomEvent<{ disabled?: boolean }>).detail
+        ?.disabled
+      setSoundsDisabledState(
+        typeof nextDisabled === "boolean"
+          ? nextDisabled
+          : areUiSoundsDisabled()
+      )
+    }
+
+    window.addEventListener(UI_SOUNDS_CHANGED_EVENT, onSoundPreferenceChange)
+    return () =>
+      window.removeEventListener(
+        UI_SOUNDS_CHANGED_EVENT,
+        onSoundPreferenceChange
+      )
+  }, [])
+
+  useEffect(() => {
     if (!user?.login) return
 
     const controller = new AbortController()
@@ -204,6 +233,13 @@ export default function CommandPalette({
       return next
     })
   }
+
+  const toggleSoundsDisabled = useCallback(() => {
+    const nextDisabled = !areUiSoundsDisabled()
+    setUiSoundsDisabled(nextDisabled)
+    setSoundsDisabledState(nextDisabled)
+    toast.success(nextDisabled ? "Sounds disabled" : "Sounds enabled")
+  }, [])
 
   const baseEntries = useMemo<CommandEntry[]>(() => {
     return items.map((item) => ({
@@ -258,6 +294,31 @@ export default function CommandPalette({
         }
 
     return [
+      {
+        id: "toggle-sounds",
+        label: soundsDisabled ? "Enable sounds" : "Disable sounds",
+        icon: soundsDisabled ? (
+          <Volume2 className="size-4 text-muted-foreground" />
+        ) : (
+          <VolumeX className="size-4 text-muted-foreground" />
+        ),
+        onSelect: () => {
+          markCommandUsed("toggle-sounds")
+          toggleSoundsDisabled()
+          onOpenChange(false)
+        },
+        keywords: [
+          "audio",
+          "disable",
+          "enable",
+          "sound",
+          "sounds",
+          "mute",
+          "muted",
+          "silence",
+          "unmute",
+        ],
+      },
       {
         id: "change-theme",
         label: "Appearance",
@@ -362,6 +423,8 @@ export default function CommandPalette({
   }, [
     currentAppearance,
     onOpenChange,
+    soundsDisabled,
+    toggleSoundsDisabled,
     toggleTheme,
     user,
   ])
@@ -478,6 +541,22 @@ export default function CommandPalette({
         description: "Toggle appearance",
         placeholder: "/appearance",
         onSelect: () => setValue("/appearance"),
+        requiresArgument: false,
+      },
+      {
+        id: "slash-mute",
+        command: "/mute",
+        description: "Disable sounds",
+        placeholder: "/mute",
+        onSelect: () => setValue("/mute"),
+        requiresArgument: false,
+      },
+      {
+        id: "slash-unmute",
+        command: "/unmute",
+        description: "Enable sounds",
+        placeholder: "/unmute",
+        onSelect: () => setValue("/unmute"),
         requiresArgument: false,
       },
       {
@@ -676,9 +755,34 @@ export default function CommandPalette({
         `${getThemeMode(nextTheme) === "dark" ? "Dark" : "Light"} appearance enabled`
       )
     })
+    map.set("disable sounds", () => {
+      toggleSoundsDisabled()
+    })
+    map.set("mute", () => {
+      toggleSoundsDisabled()
+    })
+    map.set("toggle sounds", () => {
+      toggleSoundsDisabled()
+    })
+    map.set("enable sounds", () => {
+      setUiSoundsDisabled(false)
+      setSoundsDisabledState(false)
+      toast.success("Sounds enabled")
+    })
+    map.set("unmute", () => {
+      setUiSoundsDisabled(false)
+      setSoundsDisabledState(false)
+      toast.success("Sounds enabled")
+    })
 
     return map
-  }, [onOpenNotificationsChange, router, toggleTheme, user?.login])
+  }, [
+    onOpenNotificationsChange,
+    router,
+    toggleSoundsDisabled,
+    toggleTheme,
+    user?.login,
+  ])
 
   const executeSlashCommand = async (command: string, argument: string) => {
     if (command === "home") {
@@ -763,6 +867,20 @@ export default function CommandPalette({
         `${getThemeMode(nextTheme) === "dark" ? "Dark" : "Light"} appearance enabled`
       )
       requestAnimationFrame(() => inputRef.current?.focus())
+      return
+    }
+
+    if (["mute", "disable-sounds", "sounds-off"].includes(command)) {
+      toggleSoundsDisabled()
+      onOpenChange(false)
+      return
+    }
+
+    if (["unmute", "enable-sounds", "sounds-on"].includes(command)) {
+      setUiSoundsDisabled(false)
+      setSoundsDisabledState(false)
+      toast.success("Sounds enabled")
+      onOpenChange(false)
       return
     }
 

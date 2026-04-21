@@ -64,6 +64,32 @@ const sounds = {
 
 type UiSoundName = keyof typeof sounds
 
+export const UI_SOUNDS_DISABLED_KEY = "xenon:ui-sounds-disabled"
+export const UI_SOUNDS_CHANGED_EVENT = "xenon:ui-sounds-changed"
+
+export function areUiSoundsDisabled() {
+  if (typeof window === "undefined") return false
+
+  try {
+    return window.localStorage.getItem(UI_SOUNDS_DISABLED_KEY) === "true"
+  } catch {
+    return false
+  }
+}
+
+export function setUiSoundsDisabled(disabled: boolean) {
+  try {
+    window.localStorage.setItem(
+      UI_SOUNDS_DISABLED_KEY,
+      disabled ? "true" : "false"
+    )
+  } catch {}
+
+  window.dispatchEvent(
+    new CustomEvent(UI_SOUNDS_CHANGED_EVENT, { detail: { disabled } })
+  )
+}
+
 const interactiveSelector = [
   "button",
   "a[href]",
@@ -217,8 +243,12 @@ export function UiSoundEffects() {
   const lastHoverAt = React.useRef(0)
 
   const play = React.useCallback((name: UiSoundName) => {
+    if (areUiSoundsDisabled()) return
+
     void ensureReady()
       .then(() => {
+        if (areUiSoundsDisabled()) return
+
         if (!masterReady.current) {
           setMasterVolume(0.42)
           masterReady.current = true
