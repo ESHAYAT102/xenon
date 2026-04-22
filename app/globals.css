@@ -853,6 +853,7 @@
 
 ::-webkit-scrollbar {
   width: 0px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -861,7 +862,7 @@
 
 ::-webkit-scrollbar-thumb {
   background: oklch(0.705 0.015 286.067);
-  border-radius: 4px;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
