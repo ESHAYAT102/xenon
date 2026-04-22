@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { AlertTriangle, Loader2, Save, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -130,6 +130,8 @@ export default function RepositorySettingsForm({
   }
 
   const handleDelete = async () => {
+    if (isDeleting) return
+
     if (deleteConfirmName !== repository.name) {
       toast.error("Type the repository name exactly to confirm deletion")
       return
@@ -166,6 +168,11 @@ export default function RepositorySettingsForm({
     toast.success("Repository deleted")
     router.push(`/${repository.owner.login}`)
     router.refresh()
+  }
+
+  const handleDeleteSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    void handleDelete()
   }
 
   return (
@@ -435,33 +442,34 @@ export default function RepositorySettingsForm({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3">
+          <form className="space-y-3" onSubmit={handleDeleteSubmit}>
             <Input
               disabled={isDeleting}
               placeholder={repository.name}
               value={deleteConfirmName}
               onChange={(event) => setDeleteConfirmName(event.target.value)}
             />
-          </div>
 
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              className="rounded-xl"
-              onClick={() => setIsDeleteOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              className="rounded-xl"
-              disabled={isDeleting}
-              onClick={handleDelete}
-            >
-              {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
-              Delete
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                className="rounded-xl"
+                onClick={() => setIsDeleteOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="destructive"
+                className="rounded-xl"
+                disabled={isDeleting}
+              >
+                {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                Delete
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

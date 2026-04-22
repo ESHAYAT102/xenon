@@ -1,6 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState, type UIEvent } from "react"
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type UIEvent,
+} from "react"
 import { useRouter } from "next/navigation"
 import {
   Check,
@@ -342,7 +348,7 @@ function RepositoryFilePreviewContent({
   }
 
   const handleSave = async () => {
-    if (!target) return
+    if (!target || isSaving) return
     if (!commitMessage.trim()) {
       toast.error("Commit message is required")
       return
@@ -400,6 +406,11 @@ function RepositoryFilePreviewContent({
     setIsEditing(false)
     setIsCommitDialogOpen(false)
     router.refresh()
+  }
+
+  const handleCommitSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    void handleSave()
   }
 
   const handleDelete = async () => {
@@ -684,7 +695,7 @@ function RepositoryFilePreviewContent({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <form className="space-y-4" onSubmit={handleCommitSubmit}>
             <div className="space-y-2">
               <label className="font-medium text-foreground">
                 Commit message
@@ -707,27 +718,22 @@ function RepositoryFilePreviewContent({
                 placeholder="Add an optional extended description"
               />
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              className="rounded-xl"
-              onClick={() => setIsCommitDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={isSaving}
-              className="rounded-xl"
-              onClick={handleSave}
-            >
-              {isSaving ? <Loader2 className="animate-spin" /> : <Check />}
-              Commit changes
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                className="rounded-xl"
+                onClick={() => setIsCommitDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSaving} className="rounded-xl">
+                {isSaving ? <Loader2 className="animate-spin" /> : <Check />}
+                Commit changes
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
