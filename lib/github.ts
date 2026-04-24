@@ -174,6 +174,9 @@ export type GitHubRepositoryCommit = {
       date: string
       name: string
     } | null
+    committer: {
+      date: string
+    } | null
     message: string
   }
   html_url: string

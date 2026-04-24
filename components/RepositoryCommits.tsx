@@ -111,7 +111,9 @@ export default function RepositoryCommits({
               </div>
               <div className="shrink-0 text-xs text-muted-foreground">
                 {formatRelativeDate(
-                  commit.commit.author?.date ?? repositoryUpdatedAt
+                  commit.commit.committer?.date ??
+                    commit.commit.author?.date ??
+                    repositoryUpdatedAt
                 )}
               </div>
             </button>
@@ -181,12 +183,22 @@ function buildFilePatch(file: GitHubRepositoryCommitDiff["files"][number]) {
 }
 
 function formatRelativeDate(value: string) {
-  const diff = Date.now() - new Date(value).getTime()
-  const days = Math.max(1, Math.floor(diff / (1000 * 60 * 60 * 24)))
+  const date = new Date(value)
+  const today = startOfLocalDay(new Date())
+  const commitDay = startOfLocalDay(date)
+  const days = Math.max(
+    0,
+    Math.floor((today.getTime() - commitDay.getTime()) / (1000 * 60 * 60 * 24))
+  )
 
-  if (days < 2) return "today"
+  if (days === 0) return "today"
+  if (days === 1) return "1 day ago"
   if (days < 30) return `${days} days ago`
   const months = Math.floor(days / 30)
   if (months < 12) return `${months} mo ago`
   return `${Math.floor(months / 12)} yr ago`
+}
+
+function startOfLocalDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
