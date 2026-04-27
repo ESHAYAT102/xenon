@@ -24,6 +24,20 @@ export default function RepoKeyboardShortcuts({
     if (!enabled) return
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.shiftKey && event.key === "Delete") {
+        if (isEditableTarget(event.target)) return
+
+        const deleteRepositoryTrigger = document.querySelector<HTMLElement>(
+          "[data-repo-action-delete-repository]"
+        )
+
+        if (!deleteRepositoryTrigger?.hasAttribute("disabled")) {
+          event.preventDefault()
+          deleteRepositoryTrigger?.click()
+        }
+        return
+      }
+
       if (event.metaKey || event.ctrlKey || event.altKey) return
       if (isEditableTarget(event.target)) return
 

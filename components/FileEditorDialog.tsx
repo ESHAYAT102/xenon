@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { handleTextareaVsCodeKeydown } from "@/lib/textarea-vscode-shortcuts"
 
 type FileEditorDialogProps = {
   branch: string
@@ -203,6 +204,7 @@ export default function FileEditorDialog({
                 value={content}
                 disabled={isSaving}
                 onChange={(event) => setContent(event.target.value)}
+                onKeyDown={handleTextareaVsCodeKeydown}
                 onScroll={syncScroll}
                 className="absolute inset-0 h-full min-h-0 resize-none border-0 bg-transparent px-14 py-4 font-mono text-sm leading-6 text-transparent caret-white shadow-none outline-none ring-0 selection:bg-white/20 selection:text-transparent focus-visible:ring-0"
               />

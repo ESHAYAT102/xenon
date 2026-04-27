@@ -1051,6 +1051,46 @@ export default function CommandPalette({
       { id: "shortcut-tab-4", label: "Pull requests tab", keys: ["4"] },
       { id: "shortcut-tab-5", label: "Releases tab", keys: ["5"] },
       { id: "shortcut-tab-6", label: "Settings tab", keys: ["6"] },
+      {
+        id: "shortcut-editor-duplicate-up",
+        label: "Duplicate line up (editor)",
+        keys: ["Alt", "Shift", "↑"],
+      },
+      {
+        id: "shortcut-editor-duplicate-down",
+        label: "Duplicate line down (editor)",
+        keys: ["Alt", "Shift", "↓"],
+      },
+      {
+        id: "shortcut-editor-move-up",
+        label: "Move line up (editor)",
+        keys: ["Alt", "↑"],
+      },
+      {
+        id: "shortcut-editor-move-down",
+        label: "Move line down (editor)",
+        keys: ["Alt", "↓"],
+      },
+      {
+        id: "shortcut-editor-delete-line",
+        label: "Delete line (editor)",
+        keys: ["Shift", "Delete"],
+      },
+      {
+        id: "shortcut-editor-indent",
+        label: "Indent line or selection (editor)",
+        keys: ["Tab"],
+      },
+      {
+        id: "shortcut-editor-outdent",
+        label: "Outdent line or selection (editor)",
+        keys: ["Shift", "Tab"],
+      },
+      {
+        id: "shortcut-delete-repository",
+        label: "Delete repository (settings)",
+        keys: ["Shift", "Delete"],
+      },
     ],
     []
   )

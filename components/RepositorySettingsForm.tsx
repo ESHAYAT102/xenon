@@ -421,7 +421,11 @@ export default function RepositorySettingsForm({
           <Button
             variant="destructive"
             className="rounded-xl"
-            onClick={() => setIsDeleteOpen(true)}
+            data-repo-action-delete-repository
+            onClick={() => {
+              setDeleteConfirmName("")
+              setIsDeleteOpen(true)
+            }}
           >
             <Trash2 />
             Delete repository
@@ -429,7 +433,15 @@ export default function RepositorySettingsForm({
         </CardContent>
       </Card>
 
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+      <Dialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          setIsDeleteOpen(open)
+          if (!open) {
+            setDeleteConfirmName("")
+          }
+        }}
+      >
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Delete repository</DialogTitle>

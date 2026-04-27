@@ -45,6 +45,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Textarea } from "./ui/textarea"
+import { handleTextareaVsCodeKeydown } from "@/lib/textarea-vscode-shortcuts"
 
 type RepositoryFilePreviewProps = {
   branch: string
@@ -639,6 +640,7 @@ function RepositoryFilePreviewContent({
                 wrap="off"
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
+                onKeyDown={handleTextareaVsCodeKeydown}
                 onScroll={handleEditorScroll}
                 className="h-full w-full resize-none overflow-auto border-0 bg-transparent p-4 font-mono text-[13px] leading-[1.5] whitespace-pre text-foreground outline-none"
               />
