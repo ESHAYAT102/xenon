@@ -138,8 +138,10 @@ export default function RepositorySettingsForm({
     }
 
     setIsDeleting(true)
+    setDeleteConfirmName("")
+    setIsDeleteOpen(false)
 
-    const response = await fetch("/api/repository", {
+    const deleteRequest = fetch("/api/repository", {
       body: JSON.stringify({
         owner: repository.owner.login,
         repo: repository.name,
@@ -147,27 +149,34 @@ export default function RepositorySettingsForm({
       headers: {
         "Content-Type": "application/json",
       },
+      keepalive: true,
       method: "DELETE",
     })
 
-    setIsDeleting(false)
-
-    if (!response.ok) {
-      const data = (await response.json().catch(() => ({}))) as {
-        error?: string
-      }
-
-      toast.error(
-        data.error === "forbidden"
-          ? "GitHub denied repository deletion. Sign out and sign back in to grant delete permissions."
-          : "Could not delete repository"
-      )
-      return
-    }
-
-    toast.success("Repository deleted")
     router.push(`/${repository.owner.login}`)
-    router.refresh()
+    toast.success("Deleting repository in background")
+
+    void deleteRequest
+      .then(async (response) => {
+        if (!response.ok) {
+          const data = (await response.json().catch(() => ({}))) as {
+            error?: string
+          }
+
+          toast.error(
+            data.error === "forbidden"
+              ? "GitHub denied repository deletion. Sign out and sign back in to grant delete permissions."
+              : "Could not delete repository"
+          )
+          return
+        }
+
+        toast.success("Repository deleted")
+        router.refresh()
+      })
+      .catch(() => {
+        toast.error("Could not delete repository")
+      })
   }
 
   const handleDeleteSubmit = (event: FormEvent<HTMLFormElement>) => {

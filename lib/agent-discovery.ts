@@ -48,7 +48,9 @@ Use this skill when you need to inspect public GitHub content through Xenon.
 
 export function getBaseUrl(request?: Request) {
   const configuredUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXTAUTH_URL
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    process.env.NEXTAUTH_URL ??
+    process.env.PORTLESS_URL
 
   if (configuredUrl) {
     return configuredUrl.replace(/\/$/, "")

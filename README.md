@@ -23,6 +23,16 @@ Getting started
 2. Create `.env` from `.env.example`
 3. Start dev server: `bun dev`
 
+Portless
+
+- This app supports `portless` for stable local URLs such as `https://xenon.localhost`.
+- Run `portless` from the repo root to use the project config in `portless.json`.
+- When using `portless`, set `NEXTAUTH_URL=https://xenon.localhost` in your local `.env`.
+- Next.js dev requests from `xenon.localhost` and `*.xenon.localhost` are explicitly allowed in `next.config.mjs`.
+- On Arch Linux, `portless` `0.11.0` may fail while trusting its local CA with `update-ca-trust`. The proxy can still start, but browsers may show a certificate warning until the CA is installed correctly.
+- Workaround on Arch: copy the generated CA into `/etc/ca-certificates/trust-source/anchors/` and then run `sudo trust extract-compat`.
+- Temporary workaround: run plain Next with `bun dev`, or use `portless proxy start --port 1355 --https` if you want to avoid binding port `443`.
+
 Environment variables
 
 - `GITHUB_CLIENT_ID`
@@ -41,3 +51,4 @@ Scripts
 Notes
 
 - Add `http://localhost:3000/api/auth/github/callback` as the GitHub OAuth callback URL for local development.
+- If you use `portless`, also add `https://xenon.localhost/api/auth/github/callback` as a GitHub OAuth callback URL.

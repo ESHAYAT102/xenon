@@ -288,12 +288,14 @@ type GitHubEvent = {
       html_url: string
       title: string
       number: number
+      updated_at?: string
     }
     issue?: {
       html_url: string
       title: string
       state: string
       number: number
+      updated_at?: string
     }
     pull_request?: {
       html_url: string
@@ -301,6 +303,7 @@ type GitHubEvent = {
       state: string
       merged: boolean
       number: number
+      updated_at?: string
     }
     ref_type?: string
   }
@@ -1877,7 +1880,7 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
         ? [
             {
               category: "Issues",
-              createdAt: event.created_at,
+              createdAt: event.payload.issue.updated_at ?? event.created_at,
               id: event.id,
               repoName: event.repo.name,
               title: `${event.payload.action ?? "updated"}: ${event.payload.issue.title}`,
@@ -1893,7 +1896,8 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
         ? [
             {
               category: "Pull Requests",
-              createdAt: event.created_at,
+              createdAt:
+                event.payload.pull_request.updated_at ?? event.created_at,
               id: event.id,
               repoName: event.repo.name,
               title: `${event.payload.action ?? "updated"}: ${event.payload.pull_request.title}`,
@@ -1938,7 +1942,8 @@ function normalizeEvent(event: GitHubEvent): ProfileActivityItem[] {
         ? [
             {
               category: "Discussions",
-              createdAt: event.created_at,
+              createdAt:
+                event.payload.discussion.updated_at ?? event.created_at,
               id: event.id,
               repoName: event.repo.name,
               title: `${event.payload.discussion.title}`,

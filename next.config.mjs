@@ -1,4 +1,12 @@
+const allowedDevOrigins = [
+  "localhost",
+  "127.0.0.1",
+  "xenon.localhost",
+  "*.xenon.localhost",
+]
+
 const nextConfig = {
+  allowedDevOrigins,
   async headers() {
     return [
       {
