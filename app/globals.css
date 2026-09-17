@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *, .catppuccin-mocha *, .dracula-dark *, .tokyo-night-night *, .everforest-dark *, .gruvbox-dark *, .flexoki-dark *, .nord-dark *, .osaka-jade-dark *, .rose-pine-main *, .rose-pine-moon *));
+@custom-variant dark (&:is(.dark *, .catppuccin-mocha *, .dracula-dark *, .tokyo-night-night *, .everforest-dark *, .gruvbox-dark *, .flexoki-dark *, .nord-dark *, .osaka-jade-dark *, .rose-pine-main *, .rose-pine-moon *, [data-custom-theme="dark"] *));
 
 @theme inline {
   --font-heading: var(--font-heading);
@@ -778,6 +778,14 @@
   --sidebar-accent-foreground: #e0def4;
   --sidebar-border: #44415a;
   --sidebar-ring: #c4a7e7;
+}
+
+:root[data-custom-theme="light"] {
+  color-scheme: light !important;
+}
+
+:root[data-custom-theme="dark"] {
+  color-scheme: dark !important;
 }
 
 :root,

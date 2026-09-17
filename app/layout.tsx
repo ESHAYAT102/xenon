@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import { UiSoundEffects } from "@/components/UiSoundEffects"
 import { isFirefoxLikeUserAgent } from "@/lib/browser"
+import { CUSTOM_THEME_SCRIPT } from "@/lib/custom-theme"
 
 const geistHeading = Geist({ subsets: ["latin"], variable: "--font-heading" })
 
@@ -71,6 +72,9 @@ export default async function RootLayout({
         geistHeading.variable
       )}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: CUSTOM_THEME_SCRIPT }} />
+      </head>
       <body>
         <Script
           defer

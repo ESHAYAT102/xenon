@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Loader2, RefreshCw, Save } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Loader2, Palette, RefreshCw, Save, Trash2 } from "lucide-react"
 
 import A from "@/components/A"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +23,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import type { GitHubViewerSettings } from "@/lib/github"
+import {
+  applyCustomTheme,
+  CUSTOM_THEME_STORAGE_KEY,
+  parseCustomTheme,
+  removeCustomTheme,
+  type CustomTheme,
+} from "@/lib/custom-theme"
 
 type SettingsFormProps = {
   settings: GitHubViewerSettings
@@ -54,8 +61,63 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [customTheme, setCustomTheme] = useState<CustomTheme | null>(null)
+  const [themeSource, setThemeSource] = useState("")
+  const [themeError, setThemeError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      try {
+        const stored = JSON.parse(
+          window.localStorage.getItem(CUSTOM_THEME_STORAGE_KEY) ?? "null"
+        )
+        if (
+          stored &&
+          typeof stored.name === "string" &&
+          (stored.mode === "light" || stored.mode === "dark") &&
+          stored.vars &&
+          typeof stored.vars === "object"
+        ) {
+          setCustomTheme(stored as CustomTheme)
+          setThemeSource(typeof stored.source === "string" ? stored.source : "")
+        } else if (stored) {
+          window.localStorage.removeItem(CUSTOM_THEME_STORAGE_KEY)
+        }
+      } catch {
+        window.localStorage.removeItem(CUSTOM_THEME_STORAGE_KEY)
+      }
+    }, 0)
+
+    return () => window.clearTimeout(timeout)
+  }, [])
 
   const canEdit = settings.canEditProfile
+
+  const handleThemeApply = () => {
+    setThemeError(null)
+
+    try {
+      const theme = parseCustomTheme(themeSource)
+      window.localStorage.setItem(
+        CUSTOM_THEME_STORAGE_KEY,
+        JSON.stringify(theme)
+      )
+      applyCustomTheme(theme)
+      setCustomTheme(theme)
+    } catch (cause) {
+      setThemeError(
+        cause instanceof Error ? cause.message : "Could not read this theme."
+      )
+    }
+  }
+
+  const handleThemeReset = () => {
+    if (customTheme) removeCustomTheme(customTheme)
+    window.localStorage.removeItem(CUSTOM_THEME_STORAGE_KEY)
+    setCustomTheme(null)
+    setThemeSource("")
+    setThemeError(null)
+  }
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -115,6 +177,57 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
     <div className="space-y-6">
       <Card className="rounded-3xl">
         <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="size-4" />
+            Website Theme
+          </CardTitle>
+          <CardDescription>
+            Paste a TOML theme below to use its colors across the website.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            aria-label="Theme TOML"
+            className="min-h-80 font-mono"
+            placeholder={'mode = "dark"\n\naccent = "#9ba4bb"\n...'}
+            value={themeSource}
+            onChange={(event) => setThemeSource(event.target.value)}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {customTheme ? (
+              <span className="text-muted-foreground">Custom theme active</span>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              {customTheme ? (
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={handleThemeReset}
+                >
+                  <Trash2 />
+                  Remove theme
+                </Button>
+              ) : null}
+              <Button
+                className="rounded-xl"
+                disabled={!themeSource.trim()}
+                onClick={handleThemeApply}
+              >
+                <Palette />
+                Apply theme
+              </Button>
+            </div>
+          </div>
+          {themeError ? (
+            <p className="text-sm text-destructive">{themeError}</p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl">
+        <CardHeader>
           <CardTitle>OAuth Access</CardTitle>
           <CardDescription>
             This is what your current GitHub OAuth token can access right now.
@@ -150,9 +263,9 @@ export default function SettingsForm({ settings }: SettingsFormProps) {
           </div>
           {!settings.canEditProfile ? (
             <div className="rounded-2xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Editing GitHub profile settings needs the `user` OAuth scope.
-              If you signed in before this update, sign out and back in once
-              to upgrade the token.
+              Editing GitHub profile settings needs the `user` OAuth scope. If
+              you signed in before this update, sign out and back in once to
+              upgrade the token.
               <div className="mt-3">
                 <Button asChild variant="outline" className="rounded-xl">
                   <A href="/api/auth/github/login?callbackUrl=/settings">
