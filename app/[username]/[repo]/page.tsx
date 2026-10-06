@@ -46,7 +46,6 @@ import {
   getGitHubNotifications,
   getGitHubRepositoryBranches,
   getGitHubRepositoryCommitCount,
-  getGitHubRepository,
   getGitHubRepositoryIssueCount,
   getGitHubRepositoryIssues,
   getGitHubRepositoryLanguages,
@@ -87,18 +86,7 @@ export async function generateMetadata({
   params,
 }: RepositoryPageProps): Promise<Metadata> {
   const { username, repo } = await params
-  const sessionUser = await getSessionUser()
-  const { repository } = await getGitHubRepository(username, repo, sessionUser)
-
-  if (!repository) {
-    return { title: `${username}/${repo}` }
-  }
-
-  const title = repository.description
-    ? `${username}/${repository.name}: ${repository.description}`
-    : `${username}/${repository.name}`
-
-  return { title }
+  return { title: `${username}/${repo}` }
 }
 
 function formatRelativeDate(value: string) {
@@ -283,22 +271,20 @@ export default async function RepositoryPage({
   const canManageRepository =
     sessionUser?.login === repository.owner.login ||
     Boolean(repository.permissions?.admin || repository.permissions?.maintain)
-  const currentTab: RepositoryTab = isAuthenticated
-    ? issue
-      ? "issues"
-      : pr
-        ? "pulls"
-        : discussion && repository.has_discussions
-          ? "discussions"
-          : tab === "commits" ||
-              (tab === "discussions" && repository.has_discussions) ||
-              tab === "issues" ||
-              tab === "pulls" ||
-              (tab === "releases" && repository.has_downloads) ||
-              (tab === "settings" && canManageRepository)
-            ? tab
-            : "code"
-    : "code"
+  const currentTab: RepositoryTab = issue
+    ? "issues"
+    : pr
+      ? "pulls"
+      : discussion && repository.has_discussions
+        ? "discussions"
+        : tab === "commits" ||
+            (tab === "discussions" && repository.has_discussions) ||
+            tab === "issues" ||
+            tab === "pulls" ||
+            (tab === "releases" && repository.has_downloads) ||
+            (tab === "settings" && canManageRepository)
+          ? tab
+          : "code"
 
   const [
     commits,
@@ -312,16 +298,31 @@ export default async function RepositoryPage({
     releases,
     repositoryLanguages,
   ] = await Promise.all([
-    getGitHubRepositoryCommits(username, repo, sessionUser, resolvedBranch),
+    currentTab === "commits"
+      ? getGitHubRepositoryCommits(username, repo, sessionUser, resolvedBranch)
+      : [],
     getGitHubRepositoryCommitCount(username, repo, sessionUser, resolvedBranch),
-    getGitHubRepositoryDiscussions(username, repo, sessionUser),
-    getGitHubRepositoryDiscussionCount(username, repo, sessionUser),
-    getGitHubRepositoryIssues(username, repo, sessionUser),
+    currentTab === "discussions"
+      ? getGitHubRepositoryDiscussions(username, repo, sessionUser)
+      : [],
+    repository.has_discussions
+      ? getGitHubRepositoryDiscussionCount(username, repo, sessionUser)
+      : 0,
+    currentTab === "issues"
+      ? getGitHubRepositoryIssues(username, repo, sessionUser)
+      : [],
     getGitHubRepositoryIssueCount(username, repo, sessionUser),
-    getGitHubRepositoryPullRequests(username, repo, sessionUser),
+    currentTab === "pulls"
+      ? getGitHubRepositoryPullRequests(username, repo, sessionUser)
+      : [],
     getGitHubRepositoryPullRequestCount(username, repo, sessionUser),
     repository.has_downloads
-      ? getGitHubRepositoryReleases(username, repo, sessionUser)
+      ? getGitHubRepositoryReleases(
+          username,
+          repo,
+          sessionUser,
+          currentTab === "releases" ? 100 : 1
+        )
       : Promise.resolve([]),
     getGitHubRepositoryLanguages(username, repo, sessionUser),
   ])

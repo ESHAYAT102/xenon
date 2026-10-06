@@ -32,7 +32,6 @@ import {
 } from "@/components/UiSoundEffects"
 import { Kbd, KbdGroup } from "@/components/ui/kbd"
 import { useThemeTransition } from "@/hooks/use-theme-transition"
-import { usePrefetchRoutes } from "@/hooks/usePrefetchRoutes"
 import {
   THEME_FAMILIES,
   getThemeFamily,
@@ -1119,12 +1118,6 @@ export default function CommandPalette({
     ],
     []
   )
-
-  const searchPrefetchPaths = useMemo(() => {
-    return searchResults.repositories.map((repo) => `/${repo.fullName}`)
-  }, [searchResults.repositories])
-
-  usePrefetchRoutes(searchPrefetchPaths)
 
   const matchingUserRepos = useMemo(() => {
     if (!user?.login) return []

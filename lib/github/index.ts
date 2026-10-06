@@ -1821,12 +1821,13 @@ export async function getGitHubRepositoryPullRequestCount(
 export async function getGitHubRepositoryReleases(
   owner: string,
   repo: string,
-  sessionUser: SessionUser | null
+  sessionUser: SessionUser | null,
+  perPage = 100
 ) {
   const accessToken = sessionUser?.accessToken
 
   return fetchPaginatedJson<GitHubRepositoryRelease>(
-    `https://api.github.com/repos/${owner}/${repo}/releases?per_page=100`,
+    `https://api.github.com/repos/${owner}/${repo}/releases?per_page=${perPage}`,
     accessToken
   )
 }
@@ -2119,5 +2120,5 @@ export async function getGitHubStarredRepositories(
     accessToken
   )
 
-  return resolveRepositoryLanguages(repositories, accessToken)
+  return repositories
 }

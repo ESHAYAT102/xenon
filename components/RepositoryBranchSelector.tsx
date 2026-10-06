@@ -93,6 +93,7 @@ export default function RepositoryBranchSelector({
 
                   return (
                     <Link
+                      prefetch={false}
                       key={branch.name}
                       href={href}
                       className={cn(

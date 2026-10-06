@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import {
   Bun,
   Docker,
@@ -253,7 +253,6 @@ function RepositoryFileTreeInner({
   const inflightRequestsRef = useRef<
     Partial<Record<string, Promise<GitHubRepositoryContent[]>>>
   >({})
-  const prefetchedRef = useRef(false)
 
   const rootItems = useMemo(() => initialContents, [initialContents])
 
@@ -312,21 +311,6 @@ function RepositoryFileTreeInner({
     [branch, childrenByPath, owner, repo]
   )
 
-  useEffect(() => {
-    if (prefetchedRef.current || initialContents.length === 0) return
-    prefetchedRef.current = true
-
-    const directories = initialContents
-      .filter((item) => item.type === "dir")
-      .map((item) => item.path)
-
-    if (directories.length === 0) return
-
-    Promise.all(
-      directories.map((path) => loadDirectoryContents(path, false))
-    ).catch(() => {})
-  }, [initialContents, loadDirectoryContents])
-
   const toggleDirectory = async (path: string) => {
     if (expandedPaths[path]) {
       setExpandedPaths((current) => ({ ...current, [path]: false }))
@@ -370,6 +354,7 @@ function RepositoryFileTreeInner({
             </button>
           ) : (
             <Link
+              prefetch={false}
               href={
                 branch
                   ? `/${owner}/${repo}?branch=${encodeURIComponent(branch)}&path=${encodeURIComponent(item.path)}`
