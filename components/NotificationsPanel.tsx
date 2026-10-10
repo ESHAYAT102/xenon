@@ -20,6 +20,7 @@ import A from "./A"
 type NotificationsPanelProps = {
   emptyLabel: string
   notifications: GitHubNotification[]
+  onRemove?: (id: string) => void
 }
 
 function formatRelativeDate(value: string) {
@@ -40,6 +41,7 @@ function formatRelativeDate(value: string) {
 export default function NotificationsPanel({
   emptyLabel,
   notifications: initialNotifications,
+  onRemove,
 }: NotificationsPanelProps) {
   const router = useRouter()
   const [notifications, setNotifications] = useState(initialNotifications)
@@ -59,6 +61,7 @@ export default function NotificationsPanel({
 
       if (response.ok) {
         setNotifications((prev) => prev.filter((n) => n.id !== id))
+        onRemove?.(id)
         router.refresh()
       }
     } finally {

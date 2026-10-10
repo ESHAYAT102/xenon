@@ -375,6 +375,18 @@ const selectedItemCache = new Map<
   CacheEntry<GitHubRepositoryContent | null>
 >()
 const profileCache = new Map<string, CacheEntry<GitHubProfile>>()
+type GitHubProfilePageData = {
+  isOwnProfile: boolean
+  profile: GitHubProfile
+  rateLimited: boolean
+  rateLimitReset: number | null
+  repositories: GitHubRepository[]
+}
+const profilePageCache = new Map<string, CacheEntry<GitHubProfilePageData>>()
+const profilePageRequests = new Map<
+  string,
+  Promise<GitHubProfilePageData>
+>()
 const repositoryCache = new Map<string, CacheEntry<GitHubRepository>>()
 
 function readCache<T>(cache: Map<string, CacheEntry<T>>, key: string) {
@@ -472,6 +484,22 @@ function getLastPageFromLinkHeader(value: string | null) {
 async function fetchJson<T>(url: string, accessToken?: string) {
   const result = await fetchJsonWithStatus<T>(url, accessToken)
   return result.data
+}
+
+async function fetchGitHubUserOrOrganization(
+  username: string,
+  accessToken?: string
+) {
+  const user = await fetchJsonWithStatus<GitHubProfile>(
+    `https://api.github.com/users/${username}`,
+    accessToken
+  )
+  return user.status === 404
+    ? fetchJsonWithStatus<GitHubProfile>(
+        `https://api.github.com/orgs/${username}`,
+        accessToken
+      )
+    : user
 }
 
 async function fetchPaginatedJson<T>(url: string, accessToken?: string) {
@@ -1002,22 +1030,12 @@ export async function getGitHubProfileSummary(
       )
     : null
   const userProfileResponse = !isOwnProfile
-    ? await fetchJsonWithStatus<GitHubProfile>(
-        `https://api.github.com/users/${username}`,
-        accessToken
-      )
-    : null
-  const organizationProfileResponse = !isOwnProfile
-    ? await fetchJsonWithStatus<GitHubProfile>(
-        `https://api.github.com/orgs/${username}`,
-        accessToken
-      )
+    ? await fetchGitHubUserOrOrganization(username, accessToken)
     : null
 
   const profile =
     ownProfileResponse?.data ??
     userProfileResponse?.data ??
-    organizationProfileResponse?.data ??
     buildPlaceholderProfile(username)
 
   setCachedProfile(username, profile)
@@ -1069,7 +1087,7 @@ export async function getGitHubRepositoryReadme(
     : null
 }
 
-export async function getGitHubProfilePageData(
+async function loadGitHubProfilePageData(
   username: string,
   sessionUser: SessionUser | null
 ) {
@@ -1096,7 +1114,7 @@ export async function getGitHubProfilePageData(
       profile: cachedProfile,
       rateLimited: false,
       rateLimitReset: null,
-      repositories: await resolveRepositoryLanguages(repositories, accessToken),
+      repositories,
     }
   }
 
@@ -1107,33 +1125,19 @@ export async function getGitHubProfilePageData(
       )
     : null
   const userProfileResponse = !isOwnProfile
-    ? await fetchJsonWithStatus<GitHubProfile>(
-        `https://api.github.com/users/${username}`,
-        accessToken
-      )
-    : null
-  const organizationProfileResponse = !isOwnProfile
-    ? await fetchJsonWithStatus<GitHubProfile>(
-        `https://api.github.com/orgs/${username}`,
-        accessToken
-      )
+    ? await fetchGitHubUserOrOrganization(username, accessToken)
     : null
 
-  const profile =
-    ownProfileResponse?.data ??
-    userProfileResponse?.data ??
-    organizationProfileResponse?.data
+  const profile = ownProfileResponse?.data ?? userProfileResponse?.data
 
   const rateLimited = [
     ownProfileResponse,
     userProfileResponse,
-    organizationProfileResponse,
   ].some((response) => response?.rateLimited)
   const rateLimitReset =
     [
       ownProfileResponse?.rateLimitReset,
       userProfileResponse?.rateLimitReset,
-      organizationProfileResponse?.rateLimitReset,
     ]
       .filter((value): value is number => typeof value === "number")
       .sort((a, b) => b - a)[0] ?? null
@@ -1152,7 +1156,6 @@ export async function getGitHubProfilePageData(
     const statuses = [
       ownProfileResponse?.status,
       userProfileResponse?.status,
-      organizationProfileResponse?.status,
     ].filter((status): status is number => typeof status === "number")
 
     if (statuses.length > 0 && statuses.every((status) => status === 404)) {
@@ -1192,7 +1195,35 @@ export async function getGitHubProfilePageData(
     profile,
     rateLimited,
     rateLimitReset,
-    repositories: await resolveRepositoryLanguages(repositories, accessToken),
+    repositories,
+  }
+}
+
+export async function getGitHubProfilePageData(
+  username: string,
+  sessionUser: SessionUser | null
+) {
+  if (sessionUser?.accessToken) {
+    return loadGitHubProfilePageData(username, sessionUser)
+  }
+
+  const key = username.toLowerCase()
+  const cached = readCache(profilePageCache, key)
+  if (cached) return cached
+
+  const pending = profilePageRequests.get(key)
+  if (pending) return pending
+
+  const request = loadGitHubProfilePageData(username, sessionUser)
+  profilePageRequests.set(key, request)
+  try {
+    const data = await request
+    if (!data.rateLimited) {
+      writeCache(profilePageCache, key, data, PROFILE_CACHE_TTL)
+    }
+    return data
+  } finally {
+    profilePageRequests.delete(key)
   }
 }
 

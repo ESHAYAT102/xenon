@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/select"
 import type { GitHubRepository } from "@/lib/github"
 import { cn } from "@/lib/utils"
-import { usePrefetchRoutes } from "@/hooks/usePrefetchRoutes"
 import A from "./A"
 import Loader from "@/components/Loader"
 
@@ -222,24 +221,6 @@ export default function ProfileRepositories({
     const start = (currentPage - 1) * pageSize
     return filteredRepositories.slice(start, start + pageSize)
   }, [filteredRepositories, currentPage, pageSize, showPagination])
-
-  const prefetchPaths = useMemo(() => {
-    const nextPage = currentPage + 1
-    const totalPages = Math.ceil(filteredRepositories.length / pageSize)
-    const paths: string[] = []
-
-    if (nextPage <= totalPages) {
-      const start = (nextPage - 1) * pageSize
-      const reposToPreload = filteredRepositories.slice(start, start + pageSize)
-      for (const repo of reposToPreload) {
-        paths.push(`/${repo.owner.login}/${repo.name}`)
-      }
-    }
-
-    return paths
-  }, [filteredRepositories, currentPage, pageSize])
-
-  usePrefetchRoutes(prefetchPaths)
 
   useEffect(() => {
     onVisibleCountChange?.(filteredRepositories.length)

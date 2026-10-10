@@ -1,11 +1,6 @@
-import type { Metadata } from "next"
-import { Suspense } from "react"
-
 import BrowserContextMenu from "@/components/BrowserContextMenu"
 import Navbar from "@/components/Navbar"
-import ProfileShowcase, {
-  ProfileShowcaseFallback,
-} from "@/components/ProfileShowcase"
+import ProfileShowcase from "@/components/ProfileShowcase"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -19,7 +14,7 @@ import {
   getGitHubProfilePageData,
   getGitHubStarredRepositories,
 } from "@/lib/github"
-import { getCachedContributions } from "@/lib/get-cached-contributions"
+import { getGitHubContributions } from "@/lib/get-cached-contributions"
 import { getSessionUser } from "@/lib/session"
 import A from "@/components/A"
 
@@ -32,27 +27,6 @@ type ProfilePageProps = {
 export const dynamic = "force-dynamic"
 export const fetchCache = "force-no-store"
 export const revalidate = 0
-
-export async function generateMetadata({
-  params,
-}: ProfilePageProps): Promise<Metadata> {
-  const { username } = await params
-  const sessionUser = await getSessionUser()
-  const { profile, rateLimited } = await getGitHubProfilePageData(
-    username,
-    sessionUser
-  )
-
-  if (rateLimited) {
-    return { title: username }
-  }
-
-  const title = profile.name
-    ? `${profile.name} (${profile.login})`
-    : profile.login
-
-  return { title }
-}
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = await params
@@ -101,28 +75,29 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   const { profile, repositories } = profileData
-  const contributions = getCachedContributions(profile.login)
-
-  const [unreadNotifications, starredRepositories] = sessionUser
-    ? await Promise.all([
-        getGitHubNotifications(sessionUser, { unreadOnly: true }),
-        getGitHubStarredRepositories(username, sessionUser),
-      ])
-    : [undefined, []]
+  const [contributions, unreadNotifications, starredRepositories] =
+    await Promise.all([
+      getGitHubContributions(profile.login, sessionUser?.accessToken),
+      sessionUser
+        ? getGitHubNotifications(sessionUser, { unreadOnly: true })
+        : undefined,
+      sessionUser
+        ? getGitHubStarredRepositories(username, sessionUser)
+        : [],
+    ])
 
   return (
     <BrowserContextMenu triggerClassName="block min-h-screen w-full">
       <div className="min-h-screen bg-background text-foreground">
         <Navbar initialUnreadNotifications={unreadNotifications} />
         <main className="mx-auto w-full max-w-480 px-3 pt-24 pb-3 md:px-4 md:pb-4">
-          <Suspense fallback={<ProfileShowcaseFallback />}>
-            <ProfileShowcase
-              contributions={contributions}
-              profile={profile}
-              repositories={repositories}
-              starredRepositories={starredRepositories}
-            />
-          </Suspense>
+          <ProfileShowcase
+            contributions={contributions}
+            profile={profile}
+            repositories={repositories}
+            starredRepositories={starredRepositories}
+            today={new Date().toISOString().slice(0, 10)}
+          />
         </main>
       </div>
     </BrowserContextMenu>

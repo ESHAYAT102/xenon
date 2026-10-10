@@ -30,8 +30,10 @@ export default function NotificationsDrawer({
   const open = controlledOpen ?? internalOpen
   const setOpen = setControlledOpen ?? setInternalOpen
   const [unreadOnly, setUnreadOnly] = useState(true)
-  const [notifications, setNotifications] =
+  const [unreadNotifications, setUnreadNotifications] =
     useState<GitHubNotification[]>(initialNotifications)
+  const [allNotifications, setAllNotifications] =
+    useState<GitHubNotification[] | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -45,21 +47,24 @@ export default function NotificationsDrawer({
     let cancelled = false
 
     async function loadNotifications() {
-      const response = await fetch(
-        `/api/notifications?unreadOnly=${unreadOnly}`,
-        {
-          cache: "no-store",
-        }
-      )
+      const [unreadResponse, allResponse] = await Promise.all([
+        fetch("/api/notifications?unreadOnly=true", { cache: "no-store" }),
+        fetch("/api/notifications?unreadOnly=false", { cache: "no-store" }),
+      ])
 
-      if (!response.ok) return
+      if (!unreadResponse.ok || !allResponse.ok) return
 
-      const data = (await response.json()) as {
-        notifications: GitHubNotification[]
-      }
+      const [unreadData, allData] = (await Promise.all([
+        unreadResponse.json(),
+        allResponse.json(),
+      ])) as [
+        { notifications: GitHubNotification[] },
+        { notifications: GitHubNotification[] },
+      ]
 
       if (!cancelled) {
-        setNotifications(data.notifications)
+        setUnreadNotifications(unreadData.notifications)
+        setAllNotifications(allData.notifications)
       }
     }
 
@@ -68,7 +73,18 @@ export default function NotificationsDrawer({
     return () => {
       cancelled = true
     }
-  }, [open, unreadOnly])
+  }, [open])
+
+  const notifications = unreadOnly
+    ? unreadNotifications
+    : (allNotifications ?? unreadNotifications)
+
+  const removeNotification = (id: string) => {
+    setUnreadNotifications((current) => current.filter((item) => item.id !== id))
+    setAllNotifications((current) =>
+      current?.filter((item) => item.id !== id) ?? null
+    )
+  }
 
   return (
     <Drawer direction="right" open={open} onOpenChange={setOpen}>
@@ -104,8 +120,9 @@ export default function NotificationsDrawer({
         </DrawerHeader>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <NotificationsPanel
-            notifications={notifications}
             emptyLabel={unreadOnly ? "All caught up" : "No notifications"}
+            notifications={notifications}
+            onRemove={removeNotification}
           />
         </div>
       </DrawerContent>

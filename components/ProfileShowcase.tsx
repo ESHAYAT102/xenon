@@ -2,7 +2,6 @@
 
 import {
   type PointerEvent,
-  use,
   useEffect,
   useMemo,
   useRef,
@@ -10,6 +9,7 @@ import {
 } from "react"
 import {
   Building2,
+  Flame,
   LinkIcon,
   MapPin,
   SquareArrowOutUpRight,
@@ -31,10 +31,11 @@ import type { GitHubProfile, GitHubRepository } from "@/lib/github"
 import { cn } from "@/lib/utils"
 
 type ProfileShowcaseProps = {
-  contributions: Promise<Activity[]>
+  contributions: Activity[]
   profile: GitHubProfile
   repositories: GitHubRepository[]
   starredRepositories: GitHubRepository[]
+  today: string
 }
 
 const LANGUAGE_COLORS = [
@@ -85,6 +86,34 @@ function formatContributionDate(value: string) {
   }).format(date)
 
   return `${monthLabel} ${day}${ordinalSuffix(day)}, ${year}`
+}
+
+function getContributionStreaks(contributions: Activity[], today: string) {
+  const days = new Set(
+    contributions.filter(({ count }) => count > 0).map(({ date }) => date)
+  )
+  const dateKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+  const [year, month, day] = today.split("-").map(Number)
+  const cursor = new Date(year, month - 1, day)
+  if (!days.has(dateKey(cursor))) cursor.setDate(cursor.getDate() - 1)
+
+  let current = 0
+  while (days.has(dateKey(cursor))) {
+    current++
+    cursor.setDate(cursor.getDate() - 1)
+  }
+
+  let longest = 0
+  let run = 0
+  for (const day of [...days].sort()) {
+    const date = new Date(`${day}T00:00:00`)
+    const previous = new Date(date)
+    previous.setDate(previous.getDate() - 1)
+    run = days.has(dateKey(previous)) ? run + 1 : 1
+    longest = Math.max(longest, run)
+  }
+  return { current, longest }
 }
 
 function buildLanguageDistribution(repositories: GitHubRepository[]) {
@@ -184,8 +213,9 @@ export default function ProfileShowcase({
   profile,
   repositories,
   starredRepositories,
+  today,
 }: ProfileShowcaseProps) {
-  const contributionData = use(contributions)
+  const streaks = getContributionStreaks(contributions, today)
   const [isAvatarOpen, setIsAvatarOpen] = useState(false)
   const fallbackInitial = profile.login.charAt(0).toUpperCase()
   const languageDistribution = useMemo(
@@ -214,7 +244,7 @@ export default function ProfileShowcase({
 
   return (
     <section className="relative overflow-hidden px-4 pt-36 pb-8 md:px-8 lg:px-12">
-      <ContributionBackdrop contributions={contributionData} />
+      <ContributionBackdrop contributions={contributions} />
 
       <div className="relative mx-auto max-w-5xl space-y-12">
         <div className="space-y-5">
@@ -304,6 +334,18 @@ export default function ProfileShowcase({
                 </strong>{" "}
                 following
               </span>
+            </div>
+
+            <div className="flex flex-wrap gap-3 text-sm">
+              <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
+                <Flame className="size-4 text-orange-500" />
+                <strong className="text-foreground">{streaks.current}</strong>
+                <span className="text-muted-foreground">day current streak</span>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
+                <strong className="text-foreground">{streaks.longest}</strong>
+                <span className="text-muted-foreground">day longest streak</span>
+              </div>
             </div>
           </div>
         </div>

@@ -3,35 +3,45 @@
 import { useEffect } from "react"
 
 export function usePrefetchRoutes(paths: string[]) {
+  const pathsKey = paths.join("\n")
+
   useEffect(() => {
-    if (paths.length === 0) return
+    if (!pathsKey) return
+    const routes = pathsKey.split("\n")
 
-    const link = document.createElement("link")
-    link.rel = "prefetch"
-    link.as = "document"
-
+    let cancelled = false
     let index = 0
+    const start = () => {
+      if (cancelled) return
+      const prefetchNext = () => {
+        if (cancelled || index >= routes.length) return
 
-    const prefetchNext = () => {
-      if (index >= paths.length) return
+        const linkEl = document.createElement("link")
+        linkEl.rel = "prefetch"
+        linkEl.href = routes[index]
 
-      const linkEl = document.createElement("link")
-      linkEl.rel = "prefetch"
-      linkEl.href = paths[index]
+        linkEl.onload = linkEl.onerror = () => {
+          index++
+          prefetchNext()
+        }
 
-      linkEl.onload = () => {
-        index++
-        prefetchNext()
+        document.head.appendChild(linkEl)
       }
 
-      linkEl.onerror = () => {
-        index++
-        prefetchNext()
-      }
-
-      document.head.appendChild(linkEl)
+      prefetchNext()
     }
 
-    prefetchNext()
-  }, [paths])
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting) return
+      observer.disconnect()
+      start()
+    })
+    const target = document.querySelector("main")
+    if (target) observer.observe(target)
+
+    return () => {
+      cancelled = true
+      observer.disconnect()
+    }
+  }, [pathsKey])
 }
