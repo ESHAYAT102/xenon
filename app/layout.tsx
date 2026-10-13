@@ -5,6 +5,7 @@ import Script from "next/script"
 
 import AppKeyboardShortcuts from "@/components/AppKeyboardShortcuts"
 import AuthProvider from "@/components/AuthProvider"
+import VimNavigation from "@/components/VimNavigation"
 import "./globals.css"
 import { getSessionUser } from "@/lib/session"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -81,7 +82,7 @@ export default async function RootLayout({
           <ThemeProvider disableHotkeys={disableBrowserExtras}>
             {!disableBrowserExtras ? <AppKeyboardShortcuts /> : null}
             {!disableBrowserExtras ? <UiSoundEffects /> : null}
-            {children}
+            <VimNavigation>{children}</VimNavigation>
             <Toaster richColors position="bottom-right" />
           </ThemeProvider>
         </AuthProvider>

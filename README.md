@@ -10,7 +10,26 @@ Features
 - Repository explorer with file tree, previews, and edits
 - Command palette with slash commands and quick actions
 - Keyboard shortcuts for repo actions and tabs
+- Opt-in Vim navigation with scrolling, history, search, and link hints
 - Context menus for links, inputs, and media
+
+Vim navigation
+
+Click **Vim** in the navigation bar to enable Vim mode or view its keybindings. The preference is saved in this browser; it is off by default. Shortcuts pause in inputs, editable content, dialogs, and menus.
+
+| Keys | Action |
+| --- | --- |
+| `h` / `H`, `l` / `L` | Back / forward (forward only when available) |
+| `j` / `J`, `k` / `K` | Scroll down / up |
+| `gg`, `G` | Top / bottom |
+| `Ctrl+d`, `Ctrl+u` | Down / up half a screen |
+| `/` | Open repository and user search |
+| `f` | Show hints on visible links; type a hint to follow it |
+| `y` | Copy the current URL |
+| `Esc` | Leave search, dismiss a menu, or cancel hints |
+| `?` | Show keybindings and the Vim mode toggle |
+
+In Vim mode, `f` takes priority over the repository fork shortcut. Other repository shortcuts remain available outside link-hint mode.
 
 Tech stack
 
@@ -51,6 +70,7 @@ Scripts
 - `bun run start` starts the production server
 - `bun run lint` runs ESLint
 - `bun run typecheck` runs TypeScript
+- `bun run test` runs the Vitest suite
 
 Notes
 

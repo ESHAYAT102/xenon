@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner"
 
 import { useAuth } from "@/components/AuthProvider"
+import { useVimMode } from "@/components/VimNavigation"
 import {
   UI_SOUNDS_CHANGED_EVENT,
   areUiSoundsDisabled,
@@ -137,6 +138,7 @@ export default function CommandPalette({
 }: CommandPaletteProps) {
   const router = useRouter()
   const { user } = useAuth()
+  const { enabled: vimEnabled } = useVimMode()
   const { resolvedTheme, setThemeWithTransition, theme, toggleTheme } =
     useThemeTransition()
   const [value, setValue] = useState("")
@@ -997,6 +999,8 @@ export default function CommandPalette({
 
       if (
         event.key === "/" &&
+        !vimEnabled &&
+        !event.isComposing &&
         !(event.metaKey || event.ctrlKey || event.altKey)
       ) {
         const target = event.target as HTMLElement | null
@@ -1015,7 +1019,7 @@ export default function CommandPalette({
 
     window.addEventListener("keydown", onKeyDown, { capture: true })
     return () => window.removeEventListener("keydown", onKeyDown, { capture: true })
-  }, [disableGlobalHotkeys, open, onOpenChange])
+  }, [disableGlobalHotkeys, open, onOpenChange, vimEnabled])
 
   useEffect(() => {
     if (!open) return

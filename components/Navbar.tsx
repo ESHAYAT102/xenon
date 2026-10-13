@@ -7,6 +7,8 @@ import A from "@/components/A"
 import { useAuth } from "@/components/AuthProvider"
 import CommandPalette from "@/components/CommandPalette"
 import NotificationsDrawer from "@/components/NotificationsDrawer"
+import { useVimMode } from "@/components/VimNavigation"
+import { VIM_SEARCH_EVENT } from "@/lib/vim-navigation"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -43,6 +45,7 @@ export default function Page({
   initialUnreadNotifications = [],
 }: NavbarProps) {
   const { user } = useAuth()
+  const { enabled: vimEnabled, openHelp: openVimHelp } = useVimMode()
   const { resolvedTheme, theme } = useThemeTransition()
   const [isCommandOpen, setIsCommandOpen] = useState(false)
   const [commandInitialValue, setCommandInitialValue] = useState("")
@@ -70,6 +73,15 @@ export default function Page({
       setCommandInitialValue("")
     }
   }
+
+  useEffect(() => {
+    const openSearch = () => {
+      setCommandInitialValue("/search ")
+      setIsCommandOpen(true)
+    }
+    window.addEventListener(VIM_SEARCH_EVENT, openSearch)
+    return () => window.removeEventListener(VIM_SEARCH_EVENT, openSearch)
+  }, [])
 
   useEffect(() => {
     if (disableBrowserInteractions) return
@@ -101,7 +113,7 @@ export default function Page({
   const isDarkTheme = getThemeMode(currentTheme) === "dark"
   const authUrl = "/api/auth/github/login?callbackUrl=/"
   return (
-    <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-background/60 px-4 py-4 md:px-8 supports-backdrop-filter:backdrop-blur">
+    <nav className="fixed z-50 flex w-full items-center justify-between border-b border-foreground/10 bg-background/60 px-4 py-4 supports-backdrop-filter:backdrop-blur md:px-8">
       <CommandPalette
         open={isCommandOpen}
         disableGlobalHotkeys={disableBrowserInteractions}
@@ -120,6 +132,23 @@ export default function Page({
         </Link>
       </div>
       <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          className="rounded-full"
+          aria-label="Vim navigation preferences and keybindings"
+          title={vimEnabled ? "Vim mode enabled" : "Vim navigation"}
+          onClick={openVimHelp}
+        >
+          <span
+            className={
+              vimEnabled
+                ? "font-mono text-xs font-bold text-primary"
+                : "font-mono text-xs text-muted-foreground"
+            }
+          >
+            {vimEnabled ? "Vim on" : "Vim"}
+          </span>
+        </Button>
         <Button
           className="mr-2 rounded-full"
           variant="ghost"
