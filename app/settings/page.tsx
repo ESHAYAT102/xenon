@@ -4,6 +4,7 @@ import type { Metadata } from "next"
 import BrowserContextMenu from "@/components/BrowserContextMenu"
 import Navbar from "@/components/Navbar"
 import SettingsForm from "@/components/SettingsForm"
+import NavigationSettings from "@/components/NavigationSettings"
 import { LoginForm } from "@/components/login-form"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -34,6 +35,10 @@ export default async function SettingsPage() {
         <div className="min-h-screen bg-background text-foreground">
           <Navbar initialUnreadNotifications={[]} />
           <main className="mx-auto max-w-5xl px-5 pt-24 pb-10">
+            <h1 className="mb-8 text-4xl font-semibold tracking-tight">
+              Settings
+            </h1>
+            <NavigationSettings />
             <div className="flex min-h-[60vh] items-center justify-center">
               <LoginForm />
             </div>
@@ -135,7 +140,8 @@ export default async function SettingsPage() {
               </Card>
             </aside>
 
-            <section>
+            <section className="space-y-6">
+              <NavigationSettings />
               <SettingsForm settings={settings} />
             </section>
           </div>

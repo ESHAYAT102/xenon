@@ -15,7 +15,7 @@ Features
 
 Vim navigation
 
-Click **Vim** in the navigation bar to enable Vim mode or view its keybindings. The preference is saved in this browser; it is off by default. Shortcuts pause in inputs, editable content, dialogs, and menus.
+Choose **Enable Vim mode** or **Disable Vim mode** in the command palette, or use the **Vim mode** switch in Settings. Vim shortcuts are listed in the command palette's **Keyboard shortcuts** option; `?` also opens Vim help. The preference is saved in this browser; it is off by default. Scrolling moves the viewport smoothly, except when reduced motion is requested. Shortcuts pause in inputs, editable content, dialogs, and menus.
 
 | Keys | Action |
 | --- | --- |

@@ -45,7 +45,11 @@ function subscribePreference(callback: () => void) {
   }
 }
 
-const VimContext = createContext({ enabled: false, openHelp: () => {} })
+const VimContext = createContext({
+  enabled: false,
+  openHelp: () => {},
+  toggle: () => {},
+})
 export const useVimMode = () => useContext(VimContext)
 
 type LinkHint = {
@@ -114,11 +118,23 @@ export default function VimNavigation({
       event.stopImmediatePropagation()
     }
     const hasOverlay = () =>
-      Boolean(
-        document.querySelector(
+      Array.from(
+        document.querySelectorAll<HTMLElement>(
           '[role="dialog"], [role="alertdialog"], [role="menu"][data-state="open"], [data-slot="context-menu-content"][data-state="open"], [data-slot="popover-content"][data-state="open"], dialog[open]'
         )
-      )
+      ).some((element) => {
+        if (
+          element.dataset.state === "closed" ||
+          element.closest('[hidden], [aria-hidden="true"]')
+        )
+          return false
+        const style = window.getComputedStyle(element)
+        return (
+          element.getClientRects().length > 0 &&
+          style.visibility === "visible" &&
+          style.display !== "none"
+        )
+      })
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing) return
       if (event.key === "Escape") {
@@ -193,14 +209,20 @@ export default function VimNavigation({
             top:
               (action.startsWith("half") ? window.innerHeight / 2 : 80) *
               (action.endsWith("up") ? -1 : 1),
-            behavior: "instant",
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+              .matches
+              ? "instant"
+              : "smooth",
           })
           break
         case "top":
         case "bottom":
           window.scrollTo({
             top: action === "top" ? 0 : document.documentElement.scrollHeight,
-            behavior: "instant",
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+              .matches
+              ? "instant"
+              : "smooth",
           })
           break
         case "search":
@@ -289,11 +311,19 @@ export default function VimNavigation({
       localStorage.setItem(VIM_STORAGE_KEY, String(!enabled))
     } catch {}
     setHints([])
+    setHelpOpen(false)
+    setMessage(
+      enabled
+        ? "Vim mode disabled"
+        : "Vim mode enabled. Press ? for keybindings."
+    )
     window.dispatchEvent(new Event(preferenceEvent))
   }
 
   return (
-    <VimContext.Provider value={{ enabled, openHelp: () => setHelpOpen(true) }}>
+    <VimContext.Provider
+      value={{ enabled, openHelp: () => setHelpOpen(true), toggle }}
+    >
       {children}
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent className="max-h-[85dvh] overflow-y-auto">

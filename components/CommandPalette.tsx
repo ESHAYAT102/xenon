@@ -138,7 +138,7 @@ export default function CommandPalette({
 }: CommandPaletteProps) {
   const router = useRouter()
   const { user } = useAuth()
-  const { enabled: vimEnabled } = useVimMode()
+  const { enabled: vimEnabled, toggle: toggleVim } = useVimMode()
   const { resolvedTheme, setThemeWithTransition, theme, toggleTheme } =
     useThemeTransition()
   const [value, setValue] = useState("")
@@ -447,6 +447,17 @@ export default function CommandPalette({
         keywords: ["copy", "url", "link"],
       },
       {
+        id: "toggle-vim",
+        label: vimEnabled ? "Disable Vim mode" : "Enable Vim mode",
+        icon: <CommandIcon className="size-4 text-muted-foreground" />,
+        onSelect: () => {
+          markCommandUsed("toggle-vim")
+          toggleVim()
+          onOpenChange(false)
+        },
+        keywords: ["vim", "navigation", "keyboard", "enable", "disable"],
+      },
+      {
         id: "keyboard-shortcuts",
         label: "Keyboard shortcuts",
         icon: <Settings className="size-4 text-muted-foreground" />,
@@ -467,6 +478,8 @@ export default function CommandPalette({
     setThemeWithTransition,
     toggleSoundsDisabled,
     toggleTheme,
+    toggleVim,
+    vimEnabled,
     user,
     value,
   ])
@@ -1018,7 +1031,8 @@ export default function CommandPalette({
     }
 
     window.addEventListener("keydown", onKeyDown, { capture: true })
-    return () => window.removeEventListener("keydown", onKeyDown, { capture: true })
+    return () =>
+      window.removeEventListener("keydown", onKeyDown, { capture: true })
   }, [disableGlobalHotkeys, open, onOpenChange, vimEnabled])
 
   useEffect(() => {
@@ -1065,9 +1079,79 @@ export default function CommandPalette({
       : "max-h-[61.9vh]"
   const shortcutItems = useMemo(
     () => [
-      { id: "shortcut-slash", label: "Open command palette", keys: ["/"] },
+      {
+        id: "shortcut-palette",
+        label: "Open command palette",
+        keys: ["Ctrl / Cmd", "K"],
+      },
+      {
+        id: "shortcut-slash",
+        label: vimEnabled
+          ? "Search repositories and users"
+          : "Open command palette",
+        keys: ["/"],
+      },
+      { id: "shortcut-vim-back", label: "Go back (Vim mode)", keys: ["h / H"] },
+      {
+        id: "shortcut-vim-down",
+        label: "Scroll down (Vim mode)",
+        keys: ["j / J"],
+      },
+      { id: "shortcut-vim-up", label: "Scroll up (Vim mode)", keys: ["k / K"] },
+      {
+        id: "shortcut-vim-forward",
+        label: "Go forward if available (Vim mode)",
+        keys: ["l / L"],
+      },
+      {
+        id: "shortcut-vim-top",
+        label: "Scroll to top (Vim mode)",
+        keys: ["gg"],
+      },
+      {
+        id: "shortcut-vim-bottom",
+        label: "Scroll to bottom (Vim mode)",
+        keys: ["G"],
+      },
+      {
+        id: "shortcut-vim-half-down",
+        label: "Scroll down half a screen (Vim mode)",
+        keys: ["Ctrl", "d"],
+      },
+      {
+        id: "shortcut-vim-half-up",
+        label: "Scroll up half a screen (Vim mode)",
+        keys: ["Ctrl", "u"],
+      },
+      {
+        id: "shortcut-vim-search",
+        label: "Search repositories and users (Vim mode)",
+        keys: ["/"],
+      },
+      {
+        id: "shortcut-vim-hints",
+        label: "Show link hints, then type a hint (Vim mode)",
+        keys: ["f"],
+      },
+      {
+        id: "shortcut-vim-copy",
+        label: "Copy current page URL (Vim mode)",
+        keys: ["y"],
+      },
+      {
+        id: "shortcut-vim-escape",
+        label: "Leave search, dismiss menu, cancel hints",
+        keys: ["Esc"],
+      },
+      {
+        id: "shortcut-vim-help",
+        label: "Show Vim keybindings (Vim mode)",
+        keys: ["?"],
+      },
       { id: "shortcut-star", label: "Star repository", keys: ["S"] },
-      { id: "shortcut-fork", label: "Fork repository", keys: ["F"] },
+      ...(!vimEnabled
+        ? [{ id: "shortcut-fork", label: "Fork repository", keys: ["F"] }]
+        : []),
       { id: "shortcut-copy", label: "Copy Git URL", keys: ["C"] },
       { id: "shortcut-zip", label: "Download ZIP", keys: ["I"] },
       { id: "shortcut-tab-1", label: "Code tab", keys: ["1"] },
@@ -1120,7 +1204,7 @@ export default function CommandPalette({
         keys: ["Shift", "Delete"],
       },
     ],
-    []
+    [vimEnabled]
   )
 
   const matchingUserRepos = useMemo(() => {
